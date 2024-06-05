@@ -3,13 +3,13 @@ import numpy as np
 
 
 class SAMHESS(torch.optim.Optimizer):
-    def __init__(self, params, adaptive=False, rho=0.05, **kwargs):
+    def __init__(self, params, adaptive=False, rho=0.05, k=1, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
         super(SAMHESS, self).__init__(params, defaults)
         self.beta2 = 0.9
-        self.k = 10
+        self.k = k
         self.eps = 1e-8
         self.state['step'] = 0
 
@@ -41,19 +41,18 @@ class SAMHESS(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                param_state['d_t'] = p.grad.mul( param_state['hessian_diag'] )
+                param_state['d_t'] = p.grad.div( param_state['hessian_diag'].add(self.eps) )
         if (step + 1) % 352:
             self.weight_norm = self._weight_norm()
             self.first_grad_norm = self._grad_norm()
              
-        self.d_t_grad_norm = self._grad_norm('d_t')
         for group in self.param_groups:
-            scale = group['rho'] / (self.d_t_grad_norm + self.eps)
+            scale = group['rho']
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * param_state['d_t'] * scale.to(p)
+                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * param_state['d_t'] * scale
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 
                 param_state['e_w'] = e_w.clone()

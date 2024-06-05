@@ -15,6 +15,8 @@ import torch.nn.init as init
 def override_cfg(cfg, args):
     if args.rho is not None:
         cfg['optimizer']['opt_hyperparameter']['rho'] = args.rho
+    if args.k is not None:
+        cfg['optimizer']['opt_hyperparameter']['k'] = args.k
     if args.wd is not None:
         cfg['optimizer']['opt_hyperparameter']['weight_decay'] = args.wd
     if args.adaptive is not None:
