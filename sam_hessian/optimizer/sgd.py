@@ -42,7 +42,7 @@ class SGD(torch.optim.Optimizer):
         if by is None:
             norm = torch.norm(
                         torch.stack([
-                            ((torch.abs(p) if group["adaptive"] else 1.0) * p.grad).norm(p=2).to(shared_device)
+                            (p.grad).norm(p=2).to(shared_device)
                             for group in self.param_groups for p in group["params"]
                             if p.grad is not None
                         ]),
@@ -52,7 +52,7 @@ class SGD(torch.optim.Optimizer):
         else:
             norm = torch.norm(
                         torch.stack([
-                            ((torch.abs(p) if group["adaptive"] else 1.0) * self.state[p][by]).norm(p=2).to(shared_device)
+                            (self.state[p][by]).norm(p=2).to(shared_device)
                             for group in self.param_groups for p in group["params"]
                             if p.grad is not None
                         ]),
