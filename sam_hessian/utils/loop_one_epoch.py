@@ -43,6 +43,14 @@ def loop_one_epoch(
                 disable_running_stats(net)  # <- this is the important line
                 criterion(net(inputs), targets).backward()
                 optimizer.second_step(zero_grad=True)
+            elif opt_name == 'SGDHESS':
+                outputs = net(inputs)
+                first_loss = criterion(outputs, targets)
+                first_loss.backward(create_graph=True)        
+                optimizer.first_step(zero_grad=True)
+                # Zero the gradients explicitly
+                for param in net.parameters():
+                    param.grad = None
             else:
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
@@ -64,6 +72,10 @@ def loop_one_epoch(
             
             try: 
                 logging_dict[(f'{loop_type.title()}/sign_prod_new_old', batch_idx)] = [optimizer.ratio_new_over_old, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/d_t_grad_norm', batch_idx)] = [optimizer.d_t_grad_norm, len(dataloader)]
             except: pass
                      
             try: 
