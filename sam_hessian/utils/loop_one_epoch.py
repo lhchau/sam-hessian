@@ -29,7 +29,7 @@ def loop_one_epoch(
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)
                 first_loss.backward()
-                optimizer.step(zero_grad=True)
+                optimizer.first_step(zero_grad=True)
             elif opt_name == 'SAMHESSIAN' or opt_name == 'SAMHESS':
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
