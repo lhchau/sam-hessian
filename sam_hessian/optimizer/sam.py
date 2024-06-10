@@ -50,7 +50,7 @@ class SAM(torch.optim.Optimizer):
                 param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
                 if step == 176:
                     param_state['new_g_epoch1'] = param_state['ratio_new_over_old'] > 1
-                elif step > 176 and step % 176 == 0:
+                elif step > 176:
                     self.cnt_repeated_para += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] > 1, param_state['new_g_epoch1'] ) )
                 
                 # p.grad = torch.where( param_state['ratio_new_over_old'] > 1, p.grad, param_state['old_g'] )
