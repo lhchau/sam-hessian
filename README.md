@@ -55,3 +55,29 @@ $$
 where $k$ is control hyperparameter, $P_t$ is projection which retain the top flat coordinates. We can interpret this formula as **accelerating convergence in flat direction** and maintain the sharp direction as SGD.
 
 IRE approach is quite different with intuition derived from SAM update where the acceleration happens on both sharp and flat direction, and even that the sharp direction is more accelerated than flat.
+
+## Extended version of SGDHESS
+From the analysis in the paper **How SGD find flat minima**, they proved that the noise variance in SGD aligns well with matrix Gauss-Newton $G$, which is an linearized approximation of Hessian $H$.
+
+We propose the variant of SGD as follow:
+$$
+\begin{align*}
+  &m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t \\
+  &\hat{\epsilon_t} = g_t - m_t \ (\text{Noise extraction}) \\
+  &\epsilon_t = \beta_1 \epsilon_{t-1} + (1-\beta_1) \hat{\epsilon_t} \\
+  &v_t = \beta_2 \epsilon_{t-1} + (1-\beta_1) (\epsilon_t - \hat{\epsilon_t})^2 \\
+  &w_{t+1} = w_t - \eta g_t(I + \rho * v_t)
+\end{align*}
+$$
+
+## Research Question
+**Why AdaHessian cannot find flat minima while the multiplicative version can?**
+
+**AdaHessian**:
+$$
+\begin{align*}
+&m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t \\
+&h_t = \beta_2 h_{t-1} + (1-\beta_2) h_t^2 \\
+&w_{t+1} = w_t - \eta \frac{m_t}{\sqrt{h_t} + \epsilon}
+\end{align*}
+$$

@@ -25,7 +25,7 @@ def loop_one_epoch(
             inputs, targets = inputs.to(device, non_blocking=True), targets.to(device, non_blocking=True)
             
             opt_name = type(optimizer).__name__
-            if opt_name == 'SGD':
+            if opt_name == 'SGD' or opt_name == 'SGDVAR':
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)
                 first_loss.backward()
@@ -51,6 +51,21 @@ def loop_one_epoch(
                 # Zero the gradients explicitly
                 for param in net.parameters():
                     param.grad = None
+            elif opt_name == 'EKFAC':
+                outputs = net(inputs)
+                if optimizer.steps % optimizer.TCov == 0:
+                    # compute true fisher
+                    optimizer.acc_stats = True
+                    with torch.no_grad():
+                        sampled_y = torch.multinomial(torch.nn.functional.softmax(outputs.cpu().data, dim=1),
+                                                    1).squeeze().cuda()
+                    loss_sample = criterion(outputs, sampled_y)
+                    loss_sample.backward(retain_graph=True)
+                    optimizer.acc_stats = False
+                    optimizer.zero_grad()  # clear the gradient for computing true-fisher.
+                first_loss = criterion(outputs, targets)
+                first_loss.backward()
+                optimizer.step()
             else:
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
@@ -67,11 +82,19 @@ def loop_one_epoch(
             except: pass
             
             try: 
-                logging_dict[(f'{loop_type.title()}/ratio_new_over_old', batch_idx)] = [optimizer.ratio_new_over_old, len(dataloader)]
+                logging_dict[(f'{loop_type.title()}/checkpoint1', batch_idx)] = [optimizer.checkpoint1, len(dataloader)]
             except: pass
             
             try: 
-                logging_dict[(f'{loop_type.title()}/sign_prod_new_old', batch_idx)] = [optimizer.ratio_new_over_old, len(dataloader)]
+                logging_dict[(f'{loop_type.title()}/checkpoint2', batch_idx)] = [optimizer.checkpoint2, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint3', batch_idx)] = [optimizer.checkpoint3, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint4', batch_idx)] = [optimizer.checkpoint4, len(dataloader)]
             except: pass
             
             try: 

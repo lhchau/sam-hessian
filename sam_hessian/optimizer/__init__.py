@@ -3,6 +3,8 @@ from .sam import SAM
 from .samdirection import SAMDIRECTION
 from .sammagnitude import SAMMAGNITUDE
 from .sgdhess import SGDHESS
+from .sgdvar import SGDVAR
+from .ekfac import EKFAC
 
 def get_optimizer(
     net,
@@ -31,6 +33,16 @@ def get_optimizer(
     elif opt_name == 'sgdhess':
         return SGDHESS(
             net.parameters(), 
+            **opt_hyperparameter
+        )
+    elif opt_name == 'sgdvar':
+        return SGDVAR(
+            net.parameters(), 
+            **opt_hyperparameter
+        )
+    elif opt_name == 'ekfac':
+        return EKFAC(
+            net, 
             **opt_hyperparameter
         )
     else:

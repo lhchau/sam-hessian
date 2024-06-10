@@ -10,6 +10,10 @@ class SAM(torch.optim.Optimizer):
         super(SAM, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
+        self.total_para = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                self.total_para += p.numel()
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):   
@@ -38,6 +42,10 @@ class SAM(torch.optim.Optimizer):
         step = self.state['step']
         if (step + 1) % self.log_step:
             self.second_grad_norm = self._grad_norm()
+            self.checkpoint1 = 0
+            self.checkpoint2 = 0
+            self.checkpoint3 = 0
+            self.checkpoint4 = 0
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -46,13 +54,13 @@ class SAM(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
-                # p.grad = torch.where( param_state['ratio_new_over_old'] > 1, p.grad, param_state['old_g'] )
-                p.grad = torch.where( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0), p.grad, param_state['old_g'] )
-                # self.checkpoint2 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0) )
-                # self.checkpoint3 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() > 1) )
-                # self.checkpoint4 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() < 1) )
-
+                if (step + 1) % self.log_step:
+                    param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
+                    self.checkpoint1 += torch.sum( param_state['ratio_new_over_old'] > 1 )
+                    self.checkpoint2 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0) )
+                    self.checkpoint3 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() > 1) )
+                    self.checkpoint4 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() < 1) )
+                
                 d_p = p.grad.data
                 
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
@@ -65,7 +73,11 @@ class SAM(torch.optim.Optimizer):
                 param_state['exp_avg'].mul_(momentum).add_(d_p)
                 
                 p.add_(param_state['exp_avg'], alpha=-step_size)
-                
+        if (step + 1) % self.log_step:
+            self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
+            self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
+            self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
+            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
