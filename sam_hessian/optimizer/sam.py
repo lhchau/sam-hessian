@@ -16,7 +16,7 @@ class SAM(torch.optim.Optimizer):
         self.state['step'] += 1
         step = self.state['step']
         
-        if (step + 1) % self.log_step:
+        if (step + 1) % self.log_step == 0:
             self.weight_norm = self._weight_norm()
             
         self.first_grad_norm = self._grad_norm()
@@ -36,7 +36,7 @@ class SAM(torch.optim.Optimizer):
     @torch.no_grad()
     def second_step(self, zero_grad=False):
         step = self.state['step']
-        if (step + 1) % self.log_step:
+        if (step + 1) % self.log_step == 0:
             self.second_grad_norm = self._grad_norm()
         self.cnt_repeated_para = 0 
         for group in self.param_groups:
@@ -50,7 +50,7 @@ class SAM(torch.optim.Optimizer):
                 param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
                 if step == 176:
                     param_state['new_g_epoch1'] = param_state['ratio_new_over_old'] > 1
-                elif step > 176:
+                elif step > 176 and step % 176 == 0:
                     self.cnt_repeated_para += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] > 1, param_state['new_g_epoch1'] ) )
                 
                 # p.grad = torch.where( param_state['ratio_new_over_old'] > 1, p.grad, param_state['old_g'] )
