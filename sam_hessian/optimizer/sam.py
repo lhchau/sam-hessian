@@ -48,7 +48,7 @@ class SAM(torch.optim.Optimizer):
                 
                 param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
                 # p.grad = torch.where( param_state['ratio_new_over_old'] > 1, p.grad, param_state['old_g'] )
-                p.grad = torch.where( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0), p.grad, param_state['old_g'] )
+                p.grad = torch.where( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() > 1), p.grad, param_state['old_g'] )
                 # self.checkpoint2 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0) )
                 # self.checkpoint3 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() > 1) )
                 # self.checkpoint4 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() < 1) )
