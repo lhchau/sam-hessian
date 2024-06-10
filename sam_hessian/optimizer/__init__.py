@@ -5,6 +5,7 @@ from .sammagnitude import SAMMAGNITUDE
 from .sgdhess import SGDHESS
 from .sgdvar import SGDVAR
 from .ekfac import EKFAC
+from .sgdsam import SGDSAM
 
 def get_optimizer(
     net,
@@ -17,6 +18,11 @@ def get_optimizer(
         )
     elif opt_name == 'sgd':
         return SGD(
+            net.parameters(), 
+            **opt_hyperparameter
+        )
+    elif opt_name == 'sgdsam':
+        return SGDSAM(
             net.parameters(), 
             **opt_hyperparameter
         )

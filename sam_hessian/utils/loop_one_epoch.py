@@ -30,6 +30,17 @@ def loop_one_epoch(
                 first_loss = criterion(outputs, targets)
                 first_loss.backward()
                 optimizer.first_step(zero_grad=True)
+            elif opt_name == 'SGDSAM':
+                outputs = net(inputs)
+                first_loss = criterion(outputs, targets)
+                first_loss.backward()
+                if (batch_idx + 1) % 100 == 0:
+                    optimizer.perturbed_step(zero_grad=True)
+                    disable_running_stats(net)  # <- this is the important line
+                    criterion(net(inputs), targets).backward()
+                    optimizer.unperturbed_step(zero_grad=True)
+                    enable_running_stats(net)  # <- this is the important line
+                optimizer.first_step(zero_grad=True)
             elif opt_name == 'SAMHESSIAN' or opt_name == 'SAMHESS':
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
