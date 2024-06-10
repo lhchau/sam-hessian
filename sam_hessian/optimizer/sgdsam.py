@@ -61,7 +61,7 @@ class SGDSAM(torch.optim.Optimizer):
                     d_p = p.grad
                 else:
                     d_p = param_state['old_g'].clone()
-                    param_state['old_g'] = None
+                    del param_state['old_g']
                     
                 d_p.mul_(param_state['preconditioning'])
                 
