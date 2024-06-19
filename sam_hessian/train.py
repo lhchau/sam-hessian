@@ -31,6 +31,7 @@ parser.add_argument('--experiment', default='example', type=str, help='path to Y
 parser.add_argument('--rho', default=None, type=float, help='SAM rho')
 parser.add_argument('--k', default=None, type=int, help='SAMHESS k')
 parser.add_argument('--bs', default=None, type=int, help='Batch size')
+parser.add_argument('--lr', default=None, type=float, help='Learning rate')
 parser.add_argument('--wd', default=None, type=float, help='Weight decay')
 parser.add_argument('--model_name', default=None, type=str, help='Model name')
 parser.add_argument('--opt_name', default=None, type=str, help='Optimization name')
@@ -135,7 +136,11 @@ if __name__ == "__main__":
             if framework_name == 'tensorboard':
                 for key, value in logging_dict.items():
                     if not isinstance(key, str):
-                        writer.add_scalar(key[0], value[0], global_step=key[1] + epoch*value[1])
+                        if isinstance(value[0], dict):
+                            for k, v in value[0].items():
+                                writer.add_scalar(key[0] + str(k), v, global_step=key[1] + epoch*value[1])
+                        else:
+                            writer.add_scalar(key[0], value[0], global_step=key[1] + epoch*value[1])
                     else:
                         writer.add_scalar(key, value, global_step=epoch)
             elif framework_name == 'wandb':
@@ -171,19 +176,24 @@ if __name__ == "__main__":
                 else: tmp_dict[key.lower()] = value
             wandb.log(tmp_dict)
             
+            mini_hessian_batch_size = 128
+            cfg['dataloader']['batch_size'] = mini_hessian_batch_size
+            train_dataloader, _, _, _ = get_dataloader(**cfg['dataloader'])
             figure = get_eigen_hessian_plot(
                 name=logging_name, 
                 net=net,
                 criterion=criterion,
-                dataloader=train_dataloader
+                dataloader=train_dataloader,
+                hessian_batch_size=128*40,
+                mini_hessian_batch_size=mini_hessian_batch_size
             )
             wandb.log({'train/top5_eigenvalue_density': wandb.Image(figure)})
         
     except KeyboardInterrupt as e:
-        save_dir = os.path.join('checkpoint', logging_name)
-        logging_dir = os.path.join('runs', logging_name)
-        if os.path.exists(save_dir):
-            shutil.rmtree(save_dir)
-        if os.path.exists(logging_dir):
-            shutil.rmtree(logging_dir)
+        # save_dir = os.path.join('checkpoint', logging_name)
+        # logging_dir = os.path.join('runs', logging_name)
+        # if os.path.exists(save_dir):
+        #     shutil.rmtree(save_dir)
+        # if os.path.exists(logging_dir):
+        #     shutil.rmtree(logging_dir)
         print(f"Error: {e}")
