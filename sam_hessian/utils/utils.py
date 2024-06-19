@@ -19,6 +19,8 @@ def override_cfg(cfg, args):
         cfg['optimizer']['opt_hyperparameter']['k'] = args.k
     if args.bs is not None:
         cfg['dataloader']['batch_size'] = args.bs
+    if args.lr is not None:
+        cfg['optimizer']['opt_hyperparameter']['lr'] = args.lr
     if args.wd is not None:
         cfg['optimizer']['opt_hyperparameter']['weight_decay'] = args.wd
     if args.adaptive is not None:
