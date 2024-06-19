@@ -16,7 +16,7 @@ class SAM(torch.optim.Optimizer):
         self.state['step'] += 1
         step = self.state['step']
         
-        if (step + 1) % self.log_step == 0:
+        if step % self.log_step == 0:
             self.weight_norm = self._weight_norm()
             
         self.first_grad_norm = self._grad_norm()
@@ -29,16 +29,15 @@ class SAM(torch.optim.Optimizer):
                 e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * p.grad * scale
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 
-                param_state['old_g'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
     def second_step(self, zero_grad=False):
         step = self.state['step']
-        if (step + 1) % self.log_step == 0:
+        if step % self.log_step == 0:
             self.second_grad_norm = self._grad_norm()
-        self.cnt_repeated_para = 0 
+        
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -47,20 +46,6 @@ class SAM(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
-                if step == 176:
-                    param_state['new_g_epoch1'] = param_state['ratio_new_over_old'] > 1
-                    self.cnt_repeated_para += torch.sum( param_state['new_g_epoch1'] )
-                elif step > 176:
-                    param_state['new_g_epoch1'] = torch.logical_and( param_state['ratio_new_over_old'] > 1, param_state['new_g_epoch1'] )
-                    self.cnt_repeated_para += torch.sum( param_state['new_g_epoch1'] )
-                
-                # p.grad = torch.where( param_state['ratio_new_over_old'] > 1, p.grad, param_state['old_g'] )
-                # p.grad = torch.where( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() < 1), p.grad, param_state['old_g'] )
-                # self.checkpoint2 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0) )
-                # self.checkpoint3 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() > 1) )
-                # self.checkpoint4 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() < 1) )
-
                 d_p = p.grad.data
                 
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
