@@ -25,7 +25,17 @@ $$
 Assume $\epsilon = \rho \frac{ \nabla L(w_t) }{ || \nabla L(w_t) ||}$
 $$
 \begin{align*}
-  \nabla L(w_t + \epsilon) &= \nabla L(w_t) + \nabla[ \rho \frac{ \nabla L(w_t) }{ || \nabla L(w_t) ||} \nabla L(w_t) ] + \frac{\nabla [ Tr(\nabla^2(w_t)) ]}{2}
+  \nabla L(w_t + \epsilon) &= \nabla L(w_t) + \nabla[ \rho \frac{ \nabla L(w_t) }{ || \nabla L(w_t) ||} \nabla L(w_t) ] + \frac{\nabla [ Tr(\nabla^2(w_t)) ]}{2} \\
+  &=  \nabla L(w_t) + \nabla[ \rho ||\nabla L(w_t)|| ] + \frac{\nabla [ Tr(\nabla^2(w_t)) ]}{2} \\
+  &= \nabla L(w_t) + \rho \frac{ \nabla L(w_t) }{ || \nabla L(w_t) || } + \frac{\nabla [ Tr(\nabla^2(w_t)) ]}{2}
+\end{align*}
+$$
+
+Approximation of gradient of gradient norm:
+$$
+\begin{align*}
+  &\nabla L(w_t + v) = \nabla L(w_t) + \nabla^2 L(w_t) v \\
+  &\nabla^2 L(w_t) v = \nabla || \nabla L(w_t) || = \nabla L(w_t + v) - \nabla L(w_t) 
 \end{align*}
 $$
 

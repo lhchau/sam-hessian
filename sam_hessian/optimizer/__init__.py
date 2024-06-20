@@ -6,6 +6,8 @@ from .sgdhess import SGDHESS
 from .sgdvar import SGDVAR
 from .ekfac import EKFAC
 from .sgdsam import SGDSAM
+from .samhess import SAMHESS
+from .samatomy import SAMATOMY
 
 def get_optimizer(
     net,
@@ -49,6 +51,16 @@ def get_optimizer(
     elif opt_name == 'ekfac':
         return EKFAC(
             net, 
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samhess':
+        return SAMHESS(
+            net.parameters(), 
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samatomy':
+        return SAMATOMY(
+            net.parameters(),
             **opt_hyperparameter
         )
     else:

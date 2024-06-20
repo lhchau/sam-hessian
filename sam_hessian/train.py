@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser(description='PyTorch Training')
 parser.add_argument('--experiment', default='example', type=str, help='path to YAML config file')
 parser.add_argument('--rho', default=None, type=float, help='SAM rho')
 parser.add_argument('--k', default=None, type=int, help='SAMHESS k')
+parser.add_argument('--condition', default=None, type=int, help='SAM Atomy condition number')
 parser.add_argument('--bs', default=None, type=int, help='Batch size')
 parser.add_argument('--lr', default=None, type=float, help='Learning rate')
 parser.add_argument('--wd', default=None, type=float, help='Weight decay')
@@ -190,10 +191,10 @@ if __name__ == "__main__":
             wandb.log({'train/top5_eigenvalue_density': wandb.Image(figure)})
         
     except KeyboardInterrupt as e:
-        # save_dir = os.path.join('checkpoint', logging_name)
-        # logging_dir = os.path.join('runs', logging_name)
-        # if os.path.exists(save_dir):
-        #     shutil.rmtree(save_dir)
-        # if os.path.exists(logging_dir):
-        #     shutil.rmtree(logging_dir)
+        save_dir = os.path.join('checkpoint', logging_name)
+        logging_dir = os.path.join('runs', logging_name)
+        if os.path.exists(save_dir):
+            shutil.rmtree(save_dir)
+        if os.path.exists(logging_dir):
+            shutil.rmtree(logging_dir)
         print(f"Error: {e}")

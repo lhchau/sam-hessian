@@ -16,8 +16,8 @@ class SGDHESS(torch.optim.Optimizer):
     def first_step(self, zero_grad=False):
         self.state['step'] += 1
         step = self.state['step']
-        if (step + 1) % 352 or step == 1:
-            self.second_grad_norm = self._grad_norm()
+        
+        self.first_grad_norm = self._grad_norm()
             
         if (step + 1) % self.k == 0 or step == 1:
             params = []
@@ -35,8 +35,9 @@ class SGDHESS(torch.optim.Optimizer):
                     if p.grad is None: continue
                     param_state = self.state[p]
                     
-                    param_state['hessian_diag'] = hut_trace
+                    param_state['p_grad'] = p.grad.div(hut_trace.sqrt() + 1e-4)
                     
+        self.second_grad_norm = self._grad_norm(by='p_grad')        
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -46,7 +47,8 @@ class SGDHESS(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                d_p = p.grad.data + p.grad.mul(param_state['hessian_diag'] * rho)
+                # d_p = p.grad.data + p.grad.mul(param_state['hessian_diag'] * rho)
+                d_p = param_state['p_grad'].div(self.first_grad_norm/self.second_grad_norm)
                 
                 if weight_decay != 0:
                     d_p.add_(p.data, alpha=weight_decay)

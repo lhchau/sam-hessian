@@ -10,6 +10,7 @@ class SGDSAM(torch.optim.Optimizer):
         super(SGDSAM, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
+        self.beta = 0.9
 
     @torch.no_grad()
     def perturbed_step(self, zero_grad=False):   
@@ -24,6 +25,7 @@ class SGDSAM(torch.optim.Optimizer):
                 
                 param_state['old_g'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
+                
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
@@ -34,19 +36,14 @@ class SGDSAM(torch.optim.Optimizer):
                 
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
                 
-                param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
-                param_state['preconditioning'] = torch.where( param_state['ratio_new_over_old'] > 1, param_state['ratio_new_over_old'], 1 )
+                ratio = p.grad.div(param_state['old_g'].add(1e-4))
+                ratio = torch.where( ratio > 1, ratio, 1)
+                param_state['preconditioning'].lerp_(ratio, 1 - self.beta)
                 
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):
-        self.state['step'] += 1
-        step = self.state['step']
-        if (step + 1) % self.log_step == 0:
-            self.second_grad_norm = self._grad_norm()
-            self.weight_norm = self._weight_norm()
-
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -62,8 +59,8 @@ class SGDSAM(torch.optim.Optimizer):
                 else:
                     d_p = param_state['old_g'].clone()
                     del param_state['old_g']
-                    
-                d_p.mul_(param_state['preconditioning'])
+                
+                d_p.mul_( param_state['preconditioning'] )
                 
                 if weight_decay != 0:
                     d_p.add_(p.data, alpha=weight_decay)

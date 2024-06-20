@@ -7,13 +7,16 @@ class SGD(torch.optim.Optimizer):
         defaults = dict(**kwargs)
         super(SGD, self).__init__(params, defaults)
         self.state['step'] = 0
+        self.log_step = 176
+
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):
         self.state['step'] += 1
         step = self.state['step']
-        if (step + 1) % 352 or step == 1:
+        if step % self.log_step == 0:
             self.second_grad_norm = self._grad_norm()
+            self.weight_norm = self._weight_norm()
             
         for group in self.param_groups:
             weight_decay = group["weight_decay"]

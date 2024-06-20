@@ -17,6 +17,8 @@ def override_cfg(cfg, args):
         cfg['optimizer']['opt_hyperparameter']['rho'] = args.rho
     if args.k is not None:
         cfg['optimizer']['opt_hyperparameter']['k'] = args.k
+    if args.condition is not None:
+        cfg['optimizer']['opt_hyperparameter']['condition'] = args.condition
     if args.bs is not None:
         cfg['dataloader']['batch_size'] = args.bs
     if args.lr is not None:

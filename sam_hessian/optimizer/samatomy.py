@@ -2,18 +2,16 @@ import torch
 import numpy as np
 
 
-class SAM(torch.optim.Optimizer):
-    def __init__(self, params, rho=0.05, adaptive=False, **kwargs):
+class SAMATOMY(torch.optim.Optimizer):
+    def __init__(self, params, rho=0.05, adaptive=False, condition=2, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SAM, self).__init__(params, defaults)
+        super(SAMATOMY, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
-        self.total_para = 0
-        for group in self.param_groups:
-            for p in group['params']:
-                self.total_para += p.numel()
+        self.eps = 1e-8
+        self.condition = condition
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):   
@@ -25,7 +23,7 @@ class SAM(torch.optim.Optimizer):
             
         self.first_grad_norm = self._grad_norm()
         for group in self.param_groups:
-            scale = group['rho'] / (self.first_grad_norm + 1e-12)
+            scale = group['rho'] / (self.first_grad_norm + self.eps)
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
@@ -33,19 +31,42 @@ class SAM(torch.optim.Optimizer):
                 e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * p.grad * scale
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 
-                param_state['old_g'] = p.grad.clone()
+                param_state['first_grad'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
+        if zero_grad: self.zero_grad()
+        
+    @torch.no_grad()
+    def second_step(self, zero_grad=False): 
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None: continue
+                param_state = self.state[p]
+                
+                ratio = p.grad.div(param_state['first_grad'] + self.eps)
+                
+                param_state['d_t'] = param_state['first_grad'].mul(ratio > 1) + param_state['first_grad'].mul(~(ratio > 1)).div( self.condition )
+        
+        self.second_grad_norm = self._grad_norm('d_t')  
+        for group in self.param_groups:
+            scale = group['rho'] / (self.second_grad_norm + self.eps)
+            for p in group['params']:
+                if p.grad is None: continue
+                param_state = self.state[p]
+
+                p.sub_(param_state['e_w'])
+
+                e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * param_state['d_t'] * scale
+                
+                p.add_(e_w)  # climb to the local maximum "w + e(w)"
+                param_state['e_w'] = e_w.clone()
+
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
-    def second_step(self, zero_grad=False):
+    def third_step(self, zero_grad=False):
         step = self.state['step']
         if step % self.log_step == 0:
-            self.second_grad_norm = self._grad_norm()
-            self.checkpoint1 = 0
-            self.checkpoint2 = 0
-            self.checkpoint3 = 0
-            self.checkpoint4 = 0
+            self.third_grad_norm = self._grad_norm()
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -54,14 +75,7 @@ class SAM(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                if step % self.log_step == 0:
-                    param_state['ratio_new_over_old'] = p.grad.div(param_state['old_g'].add(1e-8))
-                    self.checkpoint1 += torch.sum( param_state['ratio_new_over_old'] > 1 )
-                    self.checkpoint2 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 1, param_state['ratio_new_over_old'] > 0) )
-                    self.checkpoint3 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() > 1) )
-                    self.checkpoint4 += torch.sum( torch.logical_and( param_state['ratio_new_over_old'] < 0, param_state['ratio_new_over_old'].abs() < 1) )
-                
-                d_p = p.grad.data
+                d_p = p.grad
                 
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
                 
@@ -73,11 +87,7 @@ class SAM(torch.optim.Optimizer):
                 param_state['exp_avg'].mul_(momentum).add_(d_p)
                 
                 p.add_(param_state['exp_avg'], alpha=-step_size)
-        if step % self.log_step == 0:
-            self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
-            self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
-            self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
-            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
+                
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()

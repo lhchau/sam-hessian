@@ -11,12 +11,13 @@ class SGDVAR(torch.optim.Optimizer):
         self.beta1 = 0.9
         self.beta2 = 0.95
         self.state['step'] = 0
+        self.log_step = 176
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):
         self.state['step'] += 1
         step = self.state['step']
-        if (step + 1) % 352 or step == 1:
+        if step % self.log_step == 0:
             self.second_grad_norm = self._grad_norm()
             self.weight_norm = self._weight_norm()
         for group in self.param_groups:
@@ -39,8 +40,7 @@ class SGDVAR(torch.optim.Optimizer):
                     param_state['exp_avg_var_g'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                 param_state['exp_avg_var_g'].mul_(self.beta2).addcmul_(noise, noise.conj(), value=1 - self.beta2)
                 
-                d_p = p.grad.addcmul_(p.grad, param_state['exp_avg_var_g'] * rho / bias_correction2)
-                d_p.clamp_(None, 1)
+                d_p = p.grad.addcmul_(p.grad, param_state['exp_avg_var_g'].sqrt() * rho / math.sqrt(bias_correction2))
                 
                 if weight_decay != 0:
                     d_p.add_(p.data, alpha=weight_decay)
@@ -52,12 +52,6 @@ class SGDVAR(torch.optim.Optimizer):
                 p.add_(param_state['exp_avg'], alpha=-step_size)
                 
         if zero_grad: self.zero_grad()
-        
-    @torch.no_grad()
-    def get_alpha_highest(self, x, alpha=0.9):
-        k = int(alpha * x.numel())
-        threshold, _ = torch.topk(x.view(-1), k, largest=True, sorted=False)
-        return threshold.min().item()
         
     @torch.no_grad()
     def _grad_norm(self, by=None):

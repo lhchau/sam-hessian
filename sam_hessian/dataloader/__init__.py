@@ -7,7 +7,7 @@ from .tiny_imagenet import get_tiny_imagenet
 def get_dataloader(
     data_name='cifar10',
     batch_size=256,
-    num_workers=16,
+    num_workers=4,
     split=(0.9, 0.1)    
 ):
     print('==> Preparing data..')

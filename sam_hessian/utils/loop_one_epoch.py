@@ -2,6 +2,8 @@ import torch
 import os
 from .utils import *
 from .bypass_bn import *
+import torch.nn.functional as F
+
 
 def loop_one_epoch(
     dataloader,
@@ -30,53 +32,72 @@ def loop_one_epoch(
                 first_loss = criterion(outputs, targets)
                 first_loss.backward()
                 optimizer.first_step(zero_grad=True)
-            elif opt_name == 'SGDSAM':
+            # elif opt_name == 'SGDSAM':
+            #     outputs = net(inputs)
+            #     first_loss = criterion(outputs, targets)
+            #     first_loss.backward()
+            #     if (batch_idx + 1) % 5 == 0:
+            #         optimizer.perturbed_step(zero_grad=True)
+            #         disable_running_stats(net)  # <- this is the important line
+            #         criterion(net(inputs), targets).backward()
+            #         optimizer.unperturbed_step(zero_grad=True)
+            #         enable_running_stats(net)  # <- this is the important line
+            #     optimizer.first_step(zero_grad=True)
+            elif opt_name == 'SAMATOMY':
+                enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)
-                first_loss.backward()
-                if (batch_idx + 1) % 100 == 0:
-                    optimizer.perturbed_step(zero_grad=True)
-                    disable_running_stats(net)  # <- this is the important line
-                    criterion(net(inputs), targets).backward()
-                    optimizer.unperturbed_step(zero_grad=True)
-                    enable_running_stats(net)  # <- this is the important line
+                first_loss.backward()        
                 optimizer.first_step(zero_grad=True)
-            elif opt_name == 'SAMHESSIAN' or opt_name == 'SAMHESS':
+                
+                disable_running_stats(net)  # <- this is the important line
+                criterion(net(inputs), targets).backward()
+                optimizer.second_step(zero_grad=True)
+                
+                criterion(net(inputs), targets).backward()
+                optimizer.third_step(zero_grad=True)
+                
+            elif opt_name == 'SAMHESS':
+                if batch_idx % 1 == 0:
+                    h_outputs = net(inputs)
+                    samp_dist = torch.distributions.Categorical(logits=h_outputs)
+                    y_sample = samp_dist.sample()
+                    h_loss = F.cross_entropy(h_outputs.view(-1, h_outputs.size(-1)), y_sample.view(-1), ignore_index=-1)
+                    h_loss.backward()
+                    optimizer.update_hessian()
+                    optimizer.zero_grad(set_to_none=True)
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)
                 first_loss.backward(create_graph=True)        
                 optimizer.first_step(zero_grad=True)
-                # Zero the gradients explicitly
-                for param in net.parameters():
-                    param.grad = None
                 
                 disable_running_stats(net)  # <- this is the important line
                 criterion(net(inputs), targets).backward()
                 optimizer.second_step(zero_grad=True)
-            elif opt_name == 'SGDHESS':
-                outputs = net(inputs)
-                first_loss = criterion(outputs, targets)
-                first_loss.backward(create_graph=True)        
-                optimizer.first_step(zero_grad=True)
-                # Zero the gradients explicitly
-                for param in net.parameters():
-                    param.grad = None
-            elif opt_name == 'EKFAC':
-                outputs = net(inputs)
-                if optimizer.steps % optimizer.TCov == 0:
-                    # compute true fisher
-                    optimizer.acc_stats = True
-                    with torch.no_grad():
-                        sampled_y = torch.multinomial(torch.nn.functional.softmax(outputs.cpu().data, dim=1),
-                                                    1).squeeze().cuda()
-                    loss_sample = criterion(outputs, sampled_y)
-                    loss_sample.backward(retain_graph=True)
-                    optimizer.acc_stats = False
-                    optimizer.zero_grad()  # clear the gradient for computing true-fisher.
-                first_loss = criterion(outputs, targets)
-                first_loss.backward()
-                optimizer.step()
+            # elif opt_name == 'SGDHESS':
+            #     outputs = net(inputs)
+            #     first_loss = criterion(outputs, targets)
+            #     first_loss.backward(create_graph=True)        
+            #     optimizer.first_step(zero_grad=True)
+            #     # Zero the gradients explicitly
+            #     for param in net.parameters():
+            #         param.grad = None
+            # elif opt_name == 'EKFAC':
+            #     outputs = net(inputs)
+            #     if optimizer.steps % optimizer.TCov == 0:
+            #         # compute true fisher
+            #         optimizer.acc_stats = True
+            #         with torch.no_grad():
+            #             sampled_y = torch.multinomial(torch.nn.functional.softmax(outputs.cpu().data, dim=1),
+            #                                         1).squeeze().cuda()
+            #         loss_sample = criterion(outputs, sampled_y)
+            #         loss_sample.backward(retain_graph=True)
+            #         optimizer.acc_stats = False
+            #         optimizer.zero_grad()  # clear the gradient for computing true-fisher.
+            #     first_loss = criterion(outputs, targets)
+            #     first_loss.backward()
+            #     optimizer.step()
             else:
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
@@ -91,11 +112,7 @@ def loop_one_epoch(
             try: 
                 logging_dict[(f'{loop_type.title()}/hessian_norm', batch_idx)] = [optimizer.hessian_norm, len(dataloader)]
             except: pass
-            
-            try: 
-                logging_dict[(f'{loop_type.title()}/cnt_repeated_para', batch_idx)] = [optimizer.cnt_repeated_para, len(dataloader)]
-            except: pass
-            
+                
             try: 
                 logging_dict[(f'{loop_type.title()}/checkpoint1', batch_idx)] = [optimizer.checkpoint1, len(dataloader)]
             except: pass
@@ -125,7 +142,15 @@ def loop_one_epoch(
             except: pass
             
             try: 
+                logging_dict[(f'{loop_type.title()}/third_grad_norm', batch_idx)] = [optimizer.third_grad_norm, len(dataloader)]
+            except: pass
+            
+            try: 
                 logging_dict[(f'{loop_type.title()}/weight_norm', batch_idx)] = [optimizer.weight_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'summary/checkpoint_dict', batch_idx)] = [optimizer.checkpoint1_dict, len(dataloader)]
             except: pass
             
             with torch.no_grad():
