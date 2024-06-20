@@ -7,7 +7,7 @@ from .sgdvar import SGDVAR
 from .ekfac import EKFAC
 from .sgdsam import SGDSAM
 from .samhess import SAMHESS
-from .samatomy import SAMATOMY
+from .samanatomy import SAMANATOMY
 
 def get_optimizer(
     net,
@@ -58,8 +58,8 @@ def get_optimizer(
             net.parameters(), 
             **opt_hyperparameter
         )
-    elif opt_name == 'samatomy':
-        return SAMATOMY(
+    elif opt_name == 'samanatomy':
+        return SAMANATOMY(
             net.parameters(),
             **opt_hyperparameter
         )
