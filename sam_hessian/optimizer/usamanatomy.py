@@ -2,12 +2,12 @@ import torch
 import numpy as np
 
 
-class SAMANATOMY(torch.optim.Optimizer):
+class USAMANATOMY(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, condition=2, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SAMANATOMY, self).__init__(params, defaults)
+        super(USAMANATOMY, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.eps = 1e-8
@@ -21,9 +21,8 @@ class SAMANATOMY(torch.optim.Optimizer):
     def first_step(self, zero_grad=False):   
         self.state['step'] += 1
         
-        self.first_grad_norm = self._grad_norm()
         for group in self.param_groups:
-            scale = group['rho'] / (self.first_grad_norm + self.eps)
+            scale = group['rho'] 
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
@@ -44,12 +43,14 @@ class SAMANATOMY(torch.optim.Optimizer):
                 
                 ratio = p.grad.div(param_state['first_grad'] + self.eps)
                 
-                mask = ratio.abs() < 1
-                param_state['d_t'] = param_state['first_grad'].mul( ~mask ) + param_state['first_grad'].mul( mask ).div( self.condition )
+                mask1 = ratio > 1
+                mask2 = (ratio > 0) & (ratio < 1)
+                mask3 = (ratio < 0) & (ratio.abs() > 1)
+                mask4 = ~mask1 + ~mask2 + ~mask3
+                param_state['d_t'] = param_state['first_grad'].mul( mask1 + mask3 ) + param_state['first_grad'].mul( mask2 + mask4 ).div( self.condition )
         
-        self.second_grad_norm = self._grad_norm('d_t')  
         for group in self.param_groups:
-            scale = group['rho'] / (self.second_grad_norm + self.eps)
+            scale = group['rho']
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]

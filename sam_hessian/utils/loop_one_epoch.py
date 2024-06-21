@@ -43,7 +43,7 @@ def loop_one_epoch(
             #         optimizer.unperturbed_step(zero_grad=True)
             #         enable_running_stats(net)  # <- this is the important line
             #     optimizer.first_step(zero_grad=True)
-            elif opt_name == 'SAMANATOMY':
+            elif opt_name == 'SAMANATOMY' or opt_name == 'USAMANATOMY':
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)

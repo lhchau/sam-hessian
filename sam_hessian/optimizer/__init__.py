@@ -8,6 +8,8 @@ from .ekfac import EKFAC
 from .sgdsam import SGDSAM
 from .samhess import SAMHESS
 from .samanatomy import SAMANATOMY
+from .usamanatomy import USAMANATOMY
+from .usam import USAM
 
 def get_optimizer(
     net,
@@ -60,6 +62,16 @@ def get_optimizer(
         )
     elif opt_name == 'samanatomy':
         return SAMANATOMY(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'usamanatomy':
+        return USAMANATOMY(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'usam':
+        return USAM(
             net.parameters(),
             **opt_hyperparameter
         )
