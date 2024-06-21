@@ -43,11 +43,8 @@ class USAMANATOMY(torch.optim.Optimizer):
                 
                 ratio = p.grad.div(param_state['first_grad'] + self.eps)
                 
-                mask1 = ratio > 1
-                mask2 = (ratio > 0) & (ratio < 1)
-                mask3 = (ratio < 0) & (ratio.abs() > 1)
-                mask4 = ~mask1 + ~mask2 + ~mask3
-                param_state['d_t'] = param_state['first_grad'].mul( mask1 + mask3 ) + param_state['first_grad'].mul( mask2 + mask4 ).div( self.condition )
+                mask1, mask3 = ratio > 1, (ratio < 0) & (ratio.abs() > 1)
+                param_state['d_t'] = param_state['first_grad'].mul( mask1 + mask3 ) + param_state['first_grad'].mul( ~(mask1 + mask3) ).div( self.condition )
         
         for group in self.param_groups:
             scale = group['rho']
