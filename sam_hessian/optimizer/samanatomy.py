@@ -44,8 +44,8 @@ class SAMANATOMY(torch.optim.Optimizer):
                 
                 ratio = p.grad.div(param_state['first_grad'] + self.eps)
                 
-                mask = ratio.abs() < 1
-                param_state['d_t'] = param_state['first_grad'].mul( ~mask ) + param_state['first_grad'].mul( mask ).div( self.condition )
+                mask1, mask3 = ratio >= 1, (ratio < 0) & (ratio.abs() >= 1)
+                param_state['d_t'] = param_state['first_grad'].mul( mask1 | mask3 ) + param_state['first_grad'].mul( ~(mask1 | mask3) ).div( self.condition )
         
         self.second_grad_norm = self._grad_norm('d_t')  
         for group in self.param_groups:
