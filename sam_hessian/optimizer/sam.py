@@ -10,6 +10,10 @@ class SAM(torch.optim.Optimizer):
         super(SAM, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
+        self.total_para = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                self.total_para += p.numel()
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):   
