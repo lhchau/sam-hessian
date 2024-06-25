@@ -57,11 +57,11 @@ class SAM(torch.optim.Optimizer):
                 d_p = p.grad.data
                 
                 if step % self.log_step == 0:
-                    param_state['ratio'] = p.grad.div(param_state['first_grad'].add(1e-8))
-                    self.checkpoint1 += torch.sum( param_state['ratio'] > 1 )
-                    self.checkpoint2 += torch.sum( torch.logical_and( param_state['ratio'] < 1, param_state['ratio'] > 0) )
-                    self.checkpoint3 += torch.sum( torch.logical_and( param_state['ratio'] < 0, param_state['ratio'].abs() > 1) )
-                    self.checkpoint4 += torch.sum( torch.logical_and( param_state['ratio'] < 0, param_state['ratio'].abs() < 1) )
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    self.checkpoint1 += torch.sum( ratio > 1 )
+                    self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
+                    self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
+                    self.checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
                 
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
                 
