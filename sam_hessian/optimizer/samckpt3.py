@@ -2,65 +2,68 @@ import torch
 import numpy as np
 
 
-class SGDSAM(torch.optim.Optimizer):
+class SAMCKPT3(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SGDSAM, self).__init__(params, defaults)
+        super(SAMCKPT3, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
-        self.beta = 0.9
+        self.total_para = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                self.total_para += p.numel()
 
     @torch.no_grad()
-    def perturbed_step(self, zero_grad=False):   
+    def first_step(self, zero_grad=False):   
+        self.state['step'] += 1
+        step = self.state['step']
+        
+        if step % self.log_step == 0:
+            self.weight_norm = self._weight_norm()
+            
         self.first_grad_norm = self._grad_norm()
         for group in self.param_groups:
             scale = group['rho'] / (self.first_grad_norm + 1e-12)
             for p in group['params']:
+                if p.grad is None: continue
                 param_state = self.state[p]
                 
                 e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * p.grad * scale
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 
-                param_state['old_g'] = p.grad.clone()
+                param_state['first_grad'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
-                
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
-    def unperturbed_step(self, zero_grad=False):   
-        for group in self.param_groups:
-            for p in group['params']:
-                param_state = self.state[p]
-                
-                p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
-                
-                ratio = p.grad.div(param_state['old_g'].add(1e-4))
-                ratio = torch.where( ratio > 1, ratio, 1)
-                param_state['preconditioning'].lerp_(ratio, 1 - self.beta)
-                
-        if zero_grad: self.zero_grad()
-
-    @torch.no_grad()
-    def first_step(self, zero_grad=False):
+    def second_step(self, zero_grad=False):
+        step = self.state['step']
+        if step % self.log_step == 0:
+            self.second_grad_norm = self._grad_norm()
+            self.checkpoint1 = 0
+            self.checkpoint2 = 0
+            self.checkpoint3 = 0
+            self.checkpoint4 = 0
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
             momentum = group['momentum']
             for p in group['params']:
+                if p.grad is None: continue
                 param_state = self.state[p]
                 
-                if 'preconditioning' not in param_state:
-                    param_state['preconditioning'] = torch.ones_like(p, memory_format=torch.preserve_format)
+                if step % self.log_step == 0:
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    self.checkpoint1 += torch.sum( ratio > 1 )
+                    self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
+                    self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
+                    self.checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
                     
-                if 'old_g' not in param_state:
-                    d_p = p.grad
-                else:
-                    d_p = param_state['old_g'].clone()
-                    del param_state['old_g']
+                d_p = p.grad.mul( torch.logical_and( ratio < 0, ratio.abs() > 1) ) + param_state['first_grad'].mul( torch.logical_not( torch.logical_and( ratio < 0, ratio.abs() > 1) ) )
                 
-                d_p.mul_( param_state['preconditioning'] )
+                p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
                 
                 if weight_decay != 0:
                     d_p.add_(p.data, alpha=weight_decay)
@@ -70,7 +73,11 @@ class SGDSAM(torch.optim.Optimizer):
                 param_state['exp_avg'].mul_(momentum).add_(d_p)
                 
                 p.add_(param_state['exp_avg'], alpha=-step_size)
-                
+        if step % self.log_step == 0:
+            self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
+            self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
+            self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
+            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()

@@ -27,22 +27,11 @@ def loop_one_epoch(
             inputs, targets = inputs.to(device, non_blocking=True), targets.to(device, non_blocking=True)
             
             opt_name = type(optimizer).__name__
-            if opt_name == 'SGD' or opt_name == 'SGDVAR':
+            if opt_name == 'SGD':
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)
                 first_loss.backward()
                 optimizer.first_step(zero_grad=True)
-            # elif opt_name == 'SGDSAM':
-            #     outputs = net(inputs)
-            #     first_loss = criterion(outputs, targets)
-            #     first_loss.backward()
-            #     if (batch_idx + 1) % 5 == 0:
-            #         optimizer.perturbed_step(zero_grad=True)
-            #         disable_running_stats(net)  # <- this is the important line
-            #         criterion(net(inputs), targets).backward()
-            #         optimizer.unperturbed_step(zero_grad=True)
-            #         enable_running_stats(net)  # <- this is the important line
-            #     optimizer.first_step(zero_grad=True)
             elif opt_name == 'SAMANATOMY' or opt_name == 'USAMANATOMY':
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
@@ -56,48 +45,6 @@ def loop_one_epoch(
                 
                 criterion(net(inputs), targets).backward()
                 optimizer.third_step(zero_grad=True)
-                
-            elif opt_name == 'SAMHESS':
-                if batch_idx % 1 == 0:
-                    h_outputs = net(inputs)
-                    samp_dist = torch.distributions.Categorical(logits=h_outputs)
-                    y_sample = samp_dist.sample()
-                    h_loss = F.cross_entropy(h_outputs.view(-1, h_outputs.size(-1)), y_sample.view(-1), ignore_index=-1)
-                    h_loss.backward()
-                    optimizer.update_hessian()
-                    optimizer.zero_grad(set_to_none=True)
-                enable_running_stats(net)  # <- this is the important line
-                outputs = net(inputs)
-                first_loss = criterion(outputs, targets)
-                first_loss.backward(create_graph=True)        
-                optimizer.first_step(zero_grad=True)
-                
-                disable_running_stats(net)  # <- this is the important line
-                criterion(net(inputs), targets).backward()
-                optimizer.second_step(zero_grad=True)
-            # elif opt_name == 'SGDHESS':
-            #     outputs = net(inputs)
-            #     first_loss = criterion(outputs, targets)
-            #     first_loss.backward(create_graph=True)        
-            #     optimizer.first_step(zero_grad=True)
-            #     # Zero the gradients explicitly
-            #     for param in net.parameters():
-            #         param.grad = None
-            # elif opt_name == 'EKFAC':
-            #     outputs = net(inputs)
-            #     if optimizer.steps % optimizer.TCov == 0:
-            #         # compute true fisher
-            #         optimizer.acc_stats = True
-            #         with torch.no_grad():
-            #             sampled_y = torch.multinomial(torch.nn.functional.softmax(outputs.cpu().data, dim=1),
-            #                                         1).squeeze().cuda()
-            #         loss_sample = criterion(outputs, sampled_y)
-            #         loss_sample.backward(retain_graph=True)
-            #         optimizer.acc_stats = False
-            #         optimizer.zero_grad()  # clear the gradient for computing true-fisher.
-            #     first_loss = criterion(outputs, targets)
-            #     first_loss.backward()
-            #     optimizer.step()
             else:
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)

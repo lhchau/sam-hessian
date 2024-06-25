@@ -2,14 +2,13 @@ from .sgd import SGD
 from .sam import SAM
 from .samdirection import SAMDIRECTION
 from .sammagnitude import SAMMAGNITUDE
-from .sgdhess import SGDHESS
-from .sgdvar import SGDVAR
-from .ekfac import EKFAC
-from .sgdsam import SGDSAM
-from .samhess import SAMHESS
 from .samanatomy import SAMANATOMY
 from .usamanatomy import USAMANATOMY
 from .usam import USAM
+from .samckpt1 import SAMCKPT1
+from .samckpt2 import SAMCKPT2
+from .samckpt3 import SAMCKPT3
+from .samckpt4 import SAMCKPT4
 
 def get_optimizer(
     net,
@@ -25,11 +24,6 @@ def get_optimizer(
             net.parameters(), 
             **opt_hyperparameter
         )
-    elif opt_name == 'sgdsam':
-        return SGDSAM(
-            net.parameters(), 
-            **opt_hyperparameter
-        )
     elif opt_name == 'samdirection':
         return SAMDIRECTION(
             net.parameters(), 
@@ -37,26 +31,6 @@ def get_optimizer(
         )
     elif opt_name == 'sammagnitude':
         return SAMMAGNITUDE(
-            net.parameters(), 
-            **opt_hyperparameter
-        )
-    elif opt_name == 'sgdhess':
-        return SGDHESS(
-            net.parameters(), 
-            **opt_hyperparameter
-        )
-    elif opt_name == 'sgdvar':
-        return SGDVAR(
-            net.parameters(), 
-            **opt_hyperparameter
-        )
-    elif opt_name == 'ekfac':
-        return EKFAC(
-            net, 
-            **opt_hyperparameter
-        )
-    elif opt_name == 'samhess':
-        return SAMHESS(
             net.parameters(), 
             **opt_hyperparameter
         )
@@ -72,6 +46,26 @@ def get_optimizer(
         )
     elif opt_name == 'usam':
         return USAM(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckpt1':
+        return SAMCKPT1(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckpt2':
+        return SAMCKPT2(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckpt3':
+        return SAMCKPT3(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckpt4':
+        return SAMCKPT4(
             net.parameters(),
             **opt_hyperparameter
         )
