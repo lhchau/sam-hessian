@@ -54,8 +54,9 @@ class SAMCKPT1(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
+                ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                
                 if step % self.log_step == 0:
-                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
