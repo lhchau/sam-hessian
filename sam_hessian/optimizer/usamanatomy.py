@@ -55,8 +55,12 @@ class USAMANATOMY(torch.optim.Optimizer):
                     self.prev_checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
                     self.prev_checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
                 
-                mask11, mask12 = (ratio > 1) & (ratio < 2), (ratio > 1) & (ratio >= 2)
-                param_state['d_t'] = param_state['first_grad'].mul( mask11 ).mul( self.condition ) + param_state['first_grad'].mul( mask12 ) + param_state['first_grad'].mul( ~(mask11 | mask12) ).div( self.condition )
+                # mask11, mask12 = (ratio > 1) & (ratio < 2), (ratio > 1) & (ratio >= 2)
+                # param_state['d_t'] = param_state['first_grad'].mul( mask11 ).mul( self.condition ) + param_state['first_grad'].mul( mask12 ) + param_state['first_grad'].mul( ~(mask11 | mask12) )
+                
+                mask11 = (ratio > 1) & (ratio < self.condition)
+                ratio11 = ratio.mul( mask11 ) + torch.ones_like( ratio ).mul( ~mask11 )
+                param_state['d_t'] = param_state['first_grad'].mul( mask11 ).mul( self.condition / ratio11 ) + param_state['first_grad'].mul( ~(mask11) )
         
         for group in self.param_groups:
             scale = group['rho']
