@@ -25,6 +25,8 @@ def override_cfg(cfg, args):
         cfg['dataloader']['batch_size'] = args.bs
     if args.lr is not None:
         cfg['optimizer']['opt_hyperparameter']['lr'] = args.lr
+    if args.momentum is not None:
+        cfg['optimizer']['opt_hyperparameter']['momentum'] = args.momentum
     if args.wd is not None:
         cfg['optimizer']['opt_hyperparameter']['weight_decay'] = args.wd
     if args.adaptive is not None:

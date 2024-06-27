@@ -34,6 +34,7 @@ parser.add_argument('--condition', default=None, type=float, help='SAM Atomy con
 parser.add_argument('--threshold', default=None, type=float, help='SAME threshold number')
 parser.add_argument('--bs', default=None, type=int, help='Batch size')
 parser.add_argument('--lr', default=None, type=float, help='Learning rate')
+parser.add_argument('--momentum', default=None, type=float, help='Momentum')
 parser.add_argument('--wd', default=None, type=float, help='Weight decay')
 parser.add_argument('--model_name', default=None, type=str, help='Model name')
 parser.add_argument('--opt_name', default=None, type=str, help='Optimization name')
