@@ -9,6 +9,7 @@ from .samckpt1 import SAMCKPT1
 from .samckpt2 import SAMCKPT2
 from .samckpt3 import SAMCKPT3
 from .samckpt4 import SAMCKPT4
+from .same import SAME
 
 def get_optimizer(
     net,
@@ -66,6 +67,11 @@ def get_optimizer(
         )
     elif opt_name == 'samckpt4':
         return SAMCKPT4(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'same':
+        return SAME(
             net.parameters(),
             **opt_hyperparameter
         )

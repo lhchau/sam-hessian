@@ -2,17 +2,17 @@ import torch
 import numpy as np
 
 
-class USAMANATOMY(torch.optim.Optimizer):
-    def __init__(self, params, rho=0.05, adaptive=False, condition=2, **kwargs):
+class SAME(torch.optim.Optimizer):
+    def __init__(self, params, rho=0.05, adaptive=False, condition=1, threshold=-1, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(USAMANATOMY, self).__init__(params, defaults)
+        super(SAME, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
-        self.eps = 1e-8
-        self.condition = condition
         self.total_para = 0
+        self.threshold = threshold
+        self.condition = condition
         for group in self.param_groups:
             for p in group['params']:
                 self.total_para += p.numel()
@@ -21,10 +21,13 @@ class USAMANATOMY(torch.optim.Optimizer):
     def first_step(self, zero_grad=False):   
         self.state['step'] += 1
         step = self.state['step']
+        
         if step % self.log_step == 0:
-            self.first_grad_norm = self._grad_norm()
+            self.weight_norm = self._weight_norm()
+            
+        self.first_grad_norm = self._grad_norm()
         for group in self.param_groups:
-            scale = group['rho'] 
+            scale = group['rho'] / (self.first_grad_norm + 1e-12)
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
@@ -35,60 +38,12 @@ class USAMANATOMY(torch.optim.Optimizer):
                 param_state['first_grad'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
         if zero_grad: self.zero_grad()
-        
+
     @torch.no_grad()
-    def second_step(self, zero_grad=False): 
+    def second_step(self, zero_grad=False):
         step = self.state['step']
         if step % self.log_step == 0:
             self.second_grad_norm = self._grad_norm()
-            self.prev_checkpoint1 = 0
-            self.prev_checkpoint2 = 0
-            self.prev_checkpoint3 = 0
-            self.prev_checkpoint4 = 0
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None: continue
-                param_state = self.state[p]
-                
-                ratio = p.grad.div(param_state['first_grad'] + self.eps)
-                
-                if step % self.log_step == 0:
-                    self.prev_checkpoint1 += torch.sum( ratio > 1 )
-                    self.prev_checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
-                    self.prev_checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
-                    self.prev_checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
-                
-                mask11 = torch.logical_and( ratio > 1, ratio < 2 )
-                param_state['d_t'] = param_state['first_grad'].mul( mask11 ).mul( self.condition ) + param_state['first_grad'].mul( torch.logical_not( mask11 ) )
-                
-                # mask11 = (ratio > 1) & (ratio < self.condition)
-                # ratio11 = ratio.mul( mask11 ) + torch.ones_like( ratio ).mul( torch.logical_not( mask11 ) )
-                # param_state['d_t'] = param_state['first_grad'].mul( mask11 ).mul( self.condition / ratio11 ) + param_state['first_grad'].mul( torch.logical_not( mask11 ) )
-        
-        for group in self.param_groups:
-            scale = group['rho']
-            for p in group['params']:
-                if p.grad is None: continue
-                param_state = self.state[p]
-
-                p.sub_(param_state['e_w'])
-
-                e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * param_state['d_t'] * scale
-                
-                p.add_(e_w)  # climb to the local maximum "w + e(w)"
-                param_state['e_w'] = e_w.clone()
-        if step % self.log_step == 0:
-            self.prev_checkpoint1 = (self.prev_checkpoint1 / self.total_para) * 100
-            self.prev_checkpoint2 = (self.prev_checkpoint2 / self.total_para) * 100
-            self.prev_checkpoint3 = (self.prev_checkpoint3 / self.total_para) * 100
-            self.prev_checkpoint4 = (self.prev_checkpoint4 / self.total_para) * 100
-        if zero_grad: self.zero_grad()
-
-    @torch.no_grad()
-    def third_step(self, zero_grad=False):
-        step = self.state['step']
-        if step % self.log_step == 0:
-            self.third_grad_norm = self._grad_norm()
             self.checkpoint1 = 0
             self.checkpoint2 = 0
             self.checkpoint3 = 0
@@ -101,10 +56,12 @@ class USAMANATOMY(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                d_p = p.grad
+                ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                
+                mask = ratio > 1 if self.threshold == -1 else torch.logical_and( ratio > 1, ratio < self.threshold )
+                d_p = p.grad.data + p.grad.mul( mask ).mul( self.condition )
                 
                 if step % self.log_step == 0:
-                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )

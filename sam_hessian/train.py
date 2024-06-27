@@ -31,6 +31,7 @@ parser.add_argument('--experiment', default='example', type=str, help='path to Y
 parser.add_argument('--rho', default=None, type=float, help='SAM rho')
 parser.add_argument('--k', default=None, type=int, help='SAMHESS k')
 parser.add_argument('--condition', default=None, type=float, help='SAM Atomy condition number')
+parser.add_argument('--threshold', default=None, type=float, help='SAME threshold number')
 parser.add_argument('--bs', default=None, type=int, help='Batch size')
 parser.add_argument('--lr', default=None, type=float, help='Learning rate')
 parser.add_argument('--wd', default=None, type=float, help='Weight decay')
