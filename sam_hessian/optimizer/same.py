@@ -59,6 +59,7 @@ class SAME(torch.optim.Optimizer):
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                 
                 mask = ratio > 1 if self.threshold == -1 else torch.logical_and( ratio > 1, ratio < self.threshold )
+                
                 d_p = p.grad.data
                 
                 if step % self.log_step == 0:
