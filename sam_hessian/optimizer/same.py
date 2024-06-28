@@ -3,7 +3,7 @@ import numpy as np
 
 
 class SAME(torch.optim.Optimizer):
-    def __init__(self, params, rho=0.05, adaptive=False, condition=1, threshold=-1, **kwargs):
+    def __init__(self, params, rho=0.05, adaptive=False, condition=1, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
@@ -11,7 +11,6 @@ class SAME(torch.optim.Optimizer):
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
-        self.threshold = threshold
         self.condition = condition
         for group in self.param_groups:
             for p in group['params']:
@@ -57,10 +56,9 @@ class SAME(torch.optim.Optimizer):
                 param_state = self.state[p]
                 
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                ratio = ratio.sign().mul( ratio.abs().clamp(None, self.condition) )
                 
-                mask = ratio > 1 if self.threshold == -1 else torch.logical_and( ratio > 1, ratio < self.threshold )
-                
-                d_p = p.grad.data
+                d_p = param_state['first_grad'].mul( ratio )
                 
                 if step % self.log_step == 0:
                     self.checkpoint1 += torch.sum( ratio > 1 )
@@ -77,7 +75,7 @@ class SAME(torch.optim.Optimizer):
                     param_state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                 param_state['exp_avg'].mul_(momentum).add_(d_p)
                 
-                p.add_(param_state['exp_avg'].add( p.grad.mul( mask ).mul( self.condition ) ), alpha=-step_size)
+                p.add_(param_state['exp_avg'], alpha=-step_size)
         if step % self.log_step == 0:
             self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
             self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
