@@ -93,6 +93,30 @@ def loop_one_epoch(
             except: pass
             
             try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint12', batch_idx)] = [optimizer.checkpoint12, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint24', batch_idx)] = [optimizer.checkpoint24, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint48', batch_idx)] = [optimizer.checkpoint48, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint816', batch_idx)] = [optimizer.checkpoint816, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint1632', batch_idx)] = [optimizer.checkpoint1632, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/checkpoint3264', batch_idx)] = [optimizer.checkpoint3264, len(dataloader)]
+            except: pass
+            
+            try: 
                 logging_dict[(f'{loop_type.title()}/d_t_grad_norm', batch_idx)] = [optimizer.d_t_grad_norm, len(dataloader)]
             except: pass
                      
