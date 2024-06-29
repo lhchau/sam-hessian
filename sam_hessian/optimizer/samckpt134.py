@@ -2,12 +2,12 @@ import torch
 import numpy as np
 
 
-class SAM(torch.optim.Optimizer):
+class SAMCKPT134(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SAM, self).__init__(params, defaults)
+        super(SAMCKPT134, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
@@ -55,10 +55,11 @@ class SAM(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                d_p = p.grad.data
+                ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                mask = torch.logical_and( ratio > 0, ratio < 1 )
+                d_p = p.grad.mul( torch.logical_not(mask) ) + param_state['first_grad'].mul( mask )
                 
                 if step % self.log_step == 0:
-                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
