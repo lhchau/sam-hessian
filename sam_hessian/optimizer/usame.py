@@ -56,7 +56,7 @@ class USAME(torch.optim.Optimizer):
                 param_state = self.state[p]
                 
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                ratio = torch.where( ratio > 1e6, 1, ratio)
+                ratio = torch.where( ratio.abs() > 1e6, ratio.sign(), ratio)
                 ratio = ratio.sign().mul( ratio.abs().clamp(None, self.condition) )
                 
                 d_p = param_state['first_grad'].mul( ratio )
