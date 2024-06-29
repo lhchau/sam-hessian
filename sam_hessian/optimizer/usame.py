@@ -2,12 +2,12 @@ import torch
 import numpy as np
 
 
-class USAM(torch.optim.Optimizer):
+class USAME(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, condition=10, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(USAM, self).__init__(params, defaults)
+        super(USAME, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
