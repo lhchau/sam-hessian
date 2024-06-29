@@ -10,10 +10,9 @@ from .samckpt1 import SAMCKPT1
 from .samckpt2 import SAMCKPT2
 from .samckpt3 import SAMCKPT3
 from .samckpt4 import SAMCKPT4
-from .same import SAME
-from .usame import USAME
+from .samckpt12 import SAMCKPT12
+from .samckpt13 import SAMCKPT13
 from .shame import SHAME
-from .samgrad import SAMGRAD
 
 def get_optimizer(
     net,
@@ -79,23 +78,18 @@ def get_optimizer(
             net.parameters(),
             **opt_hyperparameter
         )
-    elif opt_name == 'same':
-        return SAME(
+    elif opt_name == 'samckpt12':
+        return SAMCKPT12(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckpt13':
+        return SAMCKPT13(
             net.parameters(),
             **opt_hyperparameter
         )
     elif opt_name == 'shame':
         return SHAME(
-            net.parameters(),
-            **opt_hyperparameter
-        )
-    elif opt_name == 'usame':
-        return USAME(
-            net.parameters(),
-            **opt_hyperparameter
-        )
-    elif opt_name == 'samgrad':
-        return SAMGRAD(
             net.parameters(),
             **opt_hyperparameter
         )

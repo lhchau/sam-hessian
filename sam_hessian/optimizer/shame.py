@@ -56,7 +56,7 @@ class SHAME(torch.optim.Optimizer):
                 param_state = self.state[p]
                 
                 d_p = p.grad.data
-                if step // 176 > 100:
+                if step // 176 > 5:
                     ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                     mask = ratio > 1
                     d_p.add( p.grad.mul( mask ).mul( self.condition ) )

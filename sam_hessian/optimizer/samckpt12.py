@@ -2,16 +2,15 @@ import torch
 import numpy as np
 
 
-class USAME(torch.optim.Optimizer):
-    def __init__(self, params, rho=0.05, adaptive=False, condition=10, **kwargs):
+class SAMCKPT12(torch.optim.Optimizer):
+    def __init__(self, params, rho=0.05, adaptive=False, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(USAME, self).__init__(params, defaults)
+        super(SAMCKPT12, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
-        self.condition = condition
         for group in self.param_groups:
             for p in group['params']:
                 self.total_para += p.numel()
@@ -23,10 +22,10 @@ class USAME(torch.optim.Optimizer):
         
         if step % self.log_step == 0:
             self.weight_norm = self._weight_norm()
-            self.first_grad_norm = self._grad_norm()
             
+        self.first_grad_norm = self._grad_norm()
         for group in self.param_groups:
-            scale = group['rho'] 
+            scale = group['rho'] / (self.first_grad_norm + 1e-12)
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
@@ -56,17 +55,15 @@ class USAME(torch.optim.Optimizer):
                 param_state = self.state[p]
                 
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                ratio = torch.where( ratio.abs() > 1e6, ratio.sign(), ratio)
-                ratio = ratio.sign().mul( ratio.abs().clamp(None, self.condition) )
+                mask = ratio > 0
+                d_p = p.grad.mul( mask ) + param_state['first_grad'].mul( torch.logical_not(mask) )
                 
-                d_p = param_state['first_grad'].mul( ratio )
-
                 if step % self.log_step == 0:
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
                     self.checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
-                    
+                
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
                 
                 if weight_decay != 0:
@@ -81,7 +78,7 @@ class USAME(torch.optim.Optimizer):
             self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
             self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
             self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
-            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100  
+            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
