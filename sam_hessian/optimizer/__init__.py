@@ -13,6 +13,7 @@ from .samckpt4 import SAMCKPT4
 from .same import SAME
 from .usame import USAME
 from .shame import SHAME
+from .samgrad import SAMGRAD
 
 def get_optimizer(
     net,
@@ -90,6 +91,11 @@ def get_optimizer(
         )
     elif opt_name == 'usame':
         return USAME(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samgrad':
+        return SAMGRAD(
             net.parameters(),
             **opt_hyperparameter
         )
