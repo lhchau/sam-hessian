@@ -11,6 +11,7 @@ class SAM(torch.optim.Optimizer):
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
+        self.ori_rho = rho
         for group in self.param_groups:
             for p in group['params']:
                 self.total_para += p.numel()
@@ -19,6 +20,7 @@ class SAM(torch.optim.Optimizer):
     def first_step(self, zero_grad=False):   
         self.state['step'] += 1
         step = self.state['step']
+        self.rho_step()
         
         if step % self.log_step == 0:
             self.weight_norm = self._weight_norm()
@@ -80,6 +82,21 @@ class SAM(torch.optim.Optimizer):
             self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
+    @torch.no_grad()
+    def rho_step(self):  
+        step = self.state['step']
+        epoch = step // 176
+        if epoch < 60:
+            rho = self.ori_rho 
+        elif 60 < epoch < 120:
+            rho = self.ori_rho * 1.5
+        elif 120 < epoch < 160:
+            rho = self.ori_rho * 2
+        else:
+            rho = self.ori_rho * 3
+        for group in self.param_groups:
+            group['rho'] = rho
+            
     @torch.no_grad()
     def step(self, closure=None):
         assert closure is not None, "Sharpness Aware Minimization requires closure, but it was not provided"

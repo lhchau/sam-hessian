@@ -2,12 +2,12 @@ import torch
 import numpy as np
 
 
-class SAME(torch.optim.Optimizer):
+class SHAME(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, condition=1, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SAME, self).__init__(params, defaults)
+        super(SHAME, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
@@ -55,13 +55,14 @@ class SAME(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                ratio = torch.where( ratio > 1e6, 1, ratio)
-                ratio = ratio.sign().mul( ratio.abs().clamp(None, self.condition) )
-                
-                d_p = param_state['first_grad'].mul( ratio )
+                d_p = p.grad.data
+                if step // 176 > 100:
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    mask = ratio > 1
+                    d_p.add( p.grad.mul( mask ).mul( self.condition ) )
                 
                 if step % self.log_step == 0:
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
