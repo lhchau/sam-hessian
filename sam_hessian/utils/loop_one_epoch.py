@@ -117,6 +117,22 @@ def loop_one_epoch(
             except: pass
             
             try: 
+                logging_dict[(f'{loop_type.title()}/ckpt1_norm', batch_idx)] = [optimizer.ckpt1_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/ckpt2_norm', batch_idx)] = [optimizer.ckpt2_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/ckpt3_norm', batch_idx)] = [optimizer.ckpt3_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/ckpt4_norm', batch_idx)] = [optimizer.ckpt4_norm, len(dataloader)]
+            except: pass
+            
+            try: 
                 logging_dict[(f'{loop_type.title()}/d_t_grad_norm', batch_idx)] = [optimizer.d_t_grad_norm, len(dataloader)]
             except: pass
                      

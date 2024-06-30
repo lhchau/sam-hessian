@@ -15,6 +15,7 @@ from .samckpt13 import SAMCKPT13
 from .samckpt134 import SAMCKPT134
 from .shame import SHAME
 from .same import SAME
+from .samexplore import SAMEXPLORE
 
 def get_optimizer(
     net,
@@ -102,6 +103,11 @@ def get_optimizer(
         )
     elif opt_name == 'same':
         return SAME(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samexplore':
+        return SAMEXPLORE(
             net.parameters(),
             **opt_hyperparameter
         )
