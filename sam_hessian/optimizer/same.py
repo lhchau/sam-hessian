@@ -3,7 +3,7 @@ import numpy as np
 
 
 class SAME(torch.optim.Optimizer):
-    def __init__(self, params, rho=0.05, adaptive=False, condition=1, threshold=100, **kwargs):
+    def __init__(self, params, rho=0.05, adaptive=False, condition=1, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
@@ -12,7 +12,6 @@ class SAME(torch.optim.Optimizer):
         self.log_step = 176
         self.total_para = 0
         self.condition = condition
-        self.threshold = threshold
         for group in self.param_groups:
             for p in group['params']:
                 self.total_para += p.numel()
