@@ -2,12 +2,12 @@ import torch
 import numpy as np
 
 
-class SAMANATOMY(torch.optim.Optimizer):
+class SAMSTEP(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, condition=2, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SAMANATOMY, self).__init__(params, defaults)
+        super(SAMSTEP, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.eps = 1e-8
@@ -38,45 +38,19 @@ class SAMANATOMY(torch.optim.Optimizer):
     @torch.no_grad()
     def second_step(self, zero_grad=False): 
         for group in self.param_groups:
+            scale = group['rho'] * self.condition / (self.first_grad_norm + self.eps)
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                ratio = p.grad.div(param_state['first_grad'] + self.eps)
-                mask = ratio > 0
-                param_state['d_t'] = param_state['first_grad'].mul( mask ) + param_state['first_grad'].mul( torch.logical_not( mask ) ).div( self.condition )
-                
-        step = self.state['step']
-        if step % self.log_step == 0:
-            self.prev_checkpoint1 = 0
-            self.prev_checkpoint2 = 0
-            self.prev_checkpoint3 = 0
-            self.prev_checkpoint4 = 0
-        self.second_grad_norm = self._grad_norm('d_t')  
-        for group in self.param_groups:
-            scale = group['rho'] / (self.second_grad_norm + self.eps)
-            for p in group['params']:
-                if p.grad is None: continue
-                param_state = self.state[p]
-                
-                if step % self.log_step == 0:
-                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                    self.prev_checkpoint1 += torch.sum( ratio > 1 )
-                    self.prev_checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
-                    self.prev_checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
-                    self.prev_checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
-                    
                 p.sub_(param_state['e_w'])
 
-                e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * param_state['d_t'] * scale
+                e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * param_state['first_grad'] * scale
                 
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
+                param_state['second_grad'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
-        if step % self.log_step == 0:
-            self.prev_checkpoint1 = (self.prev_checkpoint1 / self.total_para) * 100
-            self.prev_checkpoint2 = (self.prev_checkpoint2 / self.total_para) * 100
-            self.prev_checkpoint3 = (self.prev_checkpoint3 / self.total_para) * 100
-            self.prev_checkpoint4 = (self.prev_checkpoint4 / self.total_para) * 100
+                
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
@@ -88,6 +62,10 @@ class SAMANATOMY(torch.optim.Optimizer):
             self.checkpoint2 = 0
             self.checkpoint3 = 0
             self.checkpoint4 = 0
+            self.prev_checkpoint1 = 0
+            self.prev_checkpoint2 = 0
+            self.prev_checkpoint3 = 0
+            self.prev_checkpoint4 = 0
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -96,14 +74,23 @@ class SAMANATOMY(torch.optim.Optimizer):
                 if p.grad is None: continue
                 param_state = self.state[p]
                 
-                d_p = p.grad
+                ratio1 = param_state['second_grad'].mul(param_state['first_grad'])
+                ratio2 = p.grad.mul(param_state['first_grad'])
+                mask = torch.logical_and( ratio1 > 0, ratio2 < 0)
+                d_p = p.grad.mul( torch.logical_not(mask) ) + param_state['second_grad'].mul( mask )
                 
                 if step % self.log_step == 0:
-                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    ratio = d_p.div(param_state['first_grad'].add(1e-8))
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
                     self.checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
+                    
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    self.prev_checkpoint1 += torch.sum( ratio > 1 )
+                    self.prev_checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
+                    self.prev_checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
+                    self.prev_checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
                 
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
                 
@@ -120,6 +107,11 @@ class SAMANATOMY(torch.optim.Optimizer):
             self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
             self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
             self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
+            
+            self.prev_checkpoint1 = (self.prev_checkpoint1 / self.total_para) * 100
+            self.prev_checkpoint2 = (self.prev_checkpoint2 / self.total_para) * 100
+            self.prev_checkpoint3 = (self.prev_checkpoint3 / self.total_para) * 100
+            self.prev_checkpoint4 = (self.prev_checkpoint4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
