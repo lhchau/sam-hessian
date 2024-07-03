@@ -57,10 +57,9 @@ class SAME(torch.optim.Optimizer):
                 param_state = self.state[p]
 
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                # mask = torch.logical_and( ratio > 0, ratio <= 1 ) if self.threshold != -1 else ratio.abs() > 1
-                mask = torch.logical_and( ratio > 0, ratio <= 1 )
+                mask = ratio > 2
 
-                d_p = p.grad.data
+                d_p = p.grad.data + p.grad.mul( mask ).mul( self.condition )
 
                 if step % self.log_step == 0:
                     self.checkpoint1 += torch.sum( ratio > 1 )
@@ -77,7 +76,7 @@ class SAME(torch.optim.Optimizer):
                     param_state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                 param_state['exp_avg'].mul_(momentum).add_(d_p)
 
-                p.add_(param_state['exp_avg'].add( p.grad.mul( torch.logical_not( mask ) ).mul( self.condition ) ), alpha=-step_size)
+                p.add_(param_state['exp_avg'], alpha=-step_size)
         if step % self.log_step == 0:
             self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
             self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
