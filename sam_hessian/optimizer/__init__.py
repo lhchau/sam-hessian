@@ -6,6 +6,7 @@ from .samanatomy import SAMANATOMY
 from .usamanatomy import USAMANATOMY
 from .usam import USAM
 from .samckpt import SAMCKPT
+from .samckptpos import SAMCKPTPOS
 from .samckpt1 import SAMCKPT1
 from .samckpt2 import SAMCKPT2
 from .samckpt3 import SAMCKPT3
@@ -61,6 +62,11 @@ def get_optimizer(
         )
     elif opt_name == 'samckpt':
         return SAMCKPT(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckptpos':
+        return SAMCKPTPOS(
             net.parameters(),
             **opt_hyperparameter
         )
