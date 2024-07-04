@@ -2,12 +2,12 @@ import torch
 import numpy as np
 
 
-class SAME(torch.optim.Optimizer):
+class SAMECKPT1(torch.optim.Optimizer):
     def __init__(self, params, rho=0.05, adaptive=False, condition=1, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(SAME, self).__init__(params, defaults)
+        super(SAMECKPT1, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
@@ -57,9 +57,9 @@ class SAME(torch.optim.Optimizer):
                 param_state = self.state[p]
 
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                mask = ratio > 2
+                mask = ratio > 1
 
-                d_p = p.grad.data + p.grad.mul( mask ).mul( self.condition )
+                d_p = p.grad.mul( mask ).mul( self.condition ) + p.grad.mul( torch.logical_not( mask ) )
 
                 if step % self.log_step == 0:
                     self.checkpoint1 += torch.sum( ratio > 1 )

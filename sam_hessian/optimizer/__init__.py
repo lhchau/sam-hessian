@@ -16,10 +16,11 @@ from .samckpt13 import SAMCKPT13
 from .samckpt14 import SAMCKPT14
 from .samckpt123 import SAMCKPT123
 from .samckpt134 import SAMCKPT134
-from .shame import SHAME
-from .same import SAME
 from .samexplore import SAMEXPLORE
-from .samstep import SAMSTEP
+from .sameckpt1 import SAMECKPT1
+from .sameckpt2 import SAMECKPT2
+from .sameckpt3 import SAMECKPT3
+from .sameckpt4 import SAMECKPT4
 
 def get_optimizer(
     net,
@@ -115,23 +116,28 @@ def get_optimizer(
             net.parameters(),
             **opt_hyperparameter
         )
-    elif opt_name == 'shame':
-        return SHAME(
-            net.parameters(),
-            **opt_hyperparameter
-        )
-    elif opt_name == 'same':
-        return SAME(
-            net.parameters(),
-            **opt_hyperparameter
-        )
     elif opt_name == 'samexplore':
         return SAMEXPLORE(
             net.parameters(),
             **opt_hyperparameter
         )
-    elif opt_name == 'samstep':
-        return SAMSTEP(
+    elif opt_name == 'sameckpt1':
+        return SAMECKPT1(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'sameckpt2':
+        return SAMECKPT2(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'sameckpt3':
+        return SAMECKPT3(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'sameckpt4':
+        return SAMECKPT4(
             net.parameters(),
             **opt_hyperparameter
         )
