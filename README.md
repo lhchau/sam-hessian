@@ -13,7 +13,7 @@
 - In this research, we aim to explore which checkpoint is responsible for learning useful patterns and which checkpoint slows down noisy fitting. 
   - The technique, we used to verify this study, involved increasing the gradient of each checkpoint subsequently and comparing those with the original SAM.
   - Our hypotheses:
-    - **Slow down the noisy fitting**: Training accuracy increases rapidly, whereas validation accuracy increases slowly.
+    - **noisy fitting**: Training accuracy increases rapidly, whereas validation accuracy increases slowly.
     - **Learn usefull pattern**: Training accuracy increases slowly, whereas validation accuracy increases quickly.
 
 ### SAM Efficiency - SAME
@@ -26,3 +26,18 @@ $$
   w_{t+1} &= w_t - \eta (g_{t+0.5} + g_{t+0.5} * mask(ckpt))
 \end{align*}
 $$
+
+- The results showed that:
+  - SAMECHECKPOINT1: 
+    - In the early stage, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM
+    - In the later stage, training accuracy is **greater** than the original SAM,  validation accuracy is **greater** than original SAM
+    - In addition, higher condition number is, higher flatter, higher training accuracy and slower gradient norm are. In contrast, the increasing perturbation radius also leads to the declining of gradient norm but the training accuracy is very low.
+  - SAMECHECKPOINT2:
+    - In the early state, training accuracy is **greater** than the original SAM, validation accuracy is quite **similar** to original SAM
+    - In the later stage, training accuracy is **greater** than the original SAM,  validation accuracy is **greater** than original SAM
+  - SAMCHECKPOINT3:
+    - In the early state, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM
+    - In the later stage, training accuracy is **less** than the original SAM,  validation accuracy is **less** than original SAM
+  - SAMCHECKPOINT4:
+    - In the early state, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM
+    - In the later stage, training accuracy is **less** than the original SAM,  validation accuracy is **higher** than original SAM
