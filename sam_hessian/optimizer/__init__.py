@@ -25,6 +25,7 @@ from .sameckpt4 import SAMECKPT4
 from .sameckpt12 import SAMECKPT12
 from .sameckpt13 import SAMECKPT13
 from .sameckpt134 import SAMECKPT134
+from .customsame import CUSTOMSAME
 
 def get_optimizer(
     net,
@@ -162,6 +163,11 @@ def get_optimizer(
         )
     elif opt_name == 'sameckpt134':
         return SAMECKPT134(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'customsame':
+        return CUSTOMSAME(
             net.parameters(),
             **opt_hyperparameter
         )

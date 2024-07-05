@@ -29,15 +29,23 @@ $$
 
 - The results showed that:
   - SAMECHECKPOINT1: 
-    - In the early stage, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM
-    - In the later stage, training accuracy is **greater** than the original SAM,  validation accuracy is **greater** than original SAM
+    - In the early stage, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM -> **Learn useful pattern**
+    - In the later stage, training accuracy is **greater** than the original SAM,  validation accuracy is **greater** than original SAM -> **Learn useful pattern**
     - In addition, higher condition number is, higher flatter, higher training accuracy and slower gradient norm are. In contrast, the increasing perturbation radius also leads to the declining of gradient norm but the training accuracy is very low.
   - SAMECHECKPOINT2:
-    - In the early state, training accuracy is **greater** than the original SAM, validation accuracy is quite **similar** to original SAM
-    - In the later stage, training accuracy is **greater** than the original SAM,  validation accuracy is **greater** than original SAM
+    - In the early state, training accuracy is **greater** than the original SAM, validation accuracy is quite **similar** to original SAM -> **Noisy learning**
+    - In the later stage, training accuracy is **greater** than the original SAM,  validation accuracy is **greater** than original SAM -> **Learn useful pattern**
   - SAMCHECKPOINT3:
-    - In the early state, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM
-    - In the later stage, training accuracy is **less** than the original SAM,  validation accuracy is **less** than original SAM
+    - In the early state, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM -> **Learn useful pattern**
+    - In the later stage, training accuracy is **less** than the original SAM,  validation accuracy is **less** than original SAM -> **Underfitting**
   - SAMCHECKPOINT4:
-    - In the early state, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM
-    - In the later stage, training accuracy is **less** than the original SAM,  validation accuracy is **higher** than original SAM
+    - In the early state, training accuracy is **less** than the original SAM, validation accuracy is quite **similar** to original SAM -> **Learn useful pattern**
+    - In the later stage, training accuracy is **less** than the original SAM,  validation accuracy is **higher** than original SAM -> **Learning useful pattern**
+
+### CustomSAME
+
+- From our findings, We create a new optimizer, utilizing the advantage of each checkpoint
+  - Increase grad checkpoint1
+  - Maintain grad checkpoint2
+  - Reduce grad checkpoint3
+  - Increase grad checkpoint4
