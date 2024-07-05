@@ -120,6 +120,11 @@ def get_optimizer(
             net.parameters(),
             **opt_hyperparameter
         )
+    elif opt_name == 'samckpt234':
+        return SAMCKPT234(
+            net.parameters(),
+            **opt_hyperparameter
+        )
     elif opt_name == 'samexplore':
         return SAMEXPLORE(
             net.parameters(),
