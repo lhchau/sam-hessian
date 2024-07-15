@@ -32,7 +32,8 @@ class SAMEVAR(torch.optim.Optimizer):
                 
                 if 'old_exp_avg' not in param_state:
                     param_state['old_exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                param_state['old_exp_avg'].mul_(self.beta1).add_(p.grad)
+                param_state['old_exp_avg'].mul_(self.beta1)
+                param_state['old_exp_avg'].add_(p.grad, alpha=1 - self.beta1)
                 
                 if 'exp_avg_var' not in param_state:
                     param_state['exp_avg_var'] = torch.zeros_like(p, memory_format=torch.preserve_format)
@@ -40,7 +41,7 @@ class SAMEVAR(torch.optim.Optimizer):
                 grad_residual = p.grad - param_state['old_exp_avg']
                 param_state['exp_avg_var'].mul_(self.beta2).addcmul_( grad_residual, grad_residual, value=1 - self.beta2)
                 
-                param_state['d_t'] = p.grad * param_state['exp_avg_var'].sqrt()
+                param_state['d_t'] = p.grad.mul( param_state['exp_avg_var'].sqrt() )
             
         self.first_grad_norm = self._grad_norm('d_t')
         for group in self.param_groups:

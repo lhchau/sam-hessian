@@ -44,8 +44,7 @@ class SAMANATOMY(torch.optim.Optimizer):
                 
                 ratio = p.grad.div(param_state['first_grad'] + self.eps)
                 mask = ratio > 0
-                param_state['d_t'] = param_state['first_grad'].mul( mask ) + param_state['first_grad'].mul( torch.logical_not( mask ) ).div( self.condition )
-                
+                param_state['d_t'] = param_state['first_grad'].mul( mask )
         step = self.state['step']
         if step % self.log_step == 0:
             self.prev_checkpoint1 = 0
@@ -88,6 +87,21 @@ class SAMANATOMY(torch.optim.Optimizer):
             self.checkpoint2 = 0
             self.checkpoint3 = 0
             self.checkpoint4 = 0
+            for group in self.param_groups:
+                for p in group['params']:
+                    if p.grad is None: continue
+                    param_state = self.state[p]
+                    
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+
+                    param_state['ckpt1'] = p.grad.mul( ratio > 1 )
+                    param_state['ckpt2'] = p.grad.mul( torch.logical_and( ratio < 1, ratio > 0) )
+                    param_state['ckpt3'] = p.grad.mul( torch.logical_and( ratio < 0, ratio.abs() > 1) )
+                    param_state['ckpt4'] = p.grad.mul( torch.logical_and( ratio < 0, ratio.abs() < 1) )
+            self.ckpt1_norm = self._grad_norm('ckpt1')
+            self.ckpt2_norm = self._grad_norm('ckpt2')
+            self.ckpt3_norm = self._grad_norm('ckpt3')
+            self.ckpt4_norm = self._grad_norm('ckpt4')
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']

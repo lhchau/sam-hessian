@@ -27,6 +27,9 @@ from .sameckpt13 import SAMECKPT13
 from .sameckpt134 import SAMECKPT134
 from .customsame import CUSTOMSAME
 from .samevar import SAMEVAR
+from .clampsam import CLAMPSAM
+from .oversam import OVERSAM
+
 
 def get_optimizer(
     net,
@@ -174,6 +177,16 @@ def get_optimizer(
         )
     elif opt_name == 'samevar':
         return SAMEVAR(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'clampsam':
+        return CLAMPSAM(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'oversam':
+        return OVERSAM(
             net.parameters(),
             **opt_hyperparameter
         )

@@ -59,6 +59,10 @@ def loop_one_epoch(
             try: 
                 logging_dict[(f'{loop_type.title()}/hessian_norm', batch_idx)] = [optimizer.hessian_norm, len(dataloader)]
             except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/num_clamp', batch_idx)] = [optimizer.num_clamp, len(dataloader)]
+            except: pass
                 
             try: 
                 logging_dict[(f'{loop_type.title()}/checkpoint1', batch_idx)] = [optimizer.checkpoint1, len(dataloader)]

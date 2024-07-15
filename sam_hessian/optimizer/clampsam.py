@@ -2,16 +2,16 @@ import torch
 import numpy as np
 
 
-class CUSTOMSAME(torch.optim.Optimizer):
-    def __init__(self, params, rho=0.05, adaptive=False, condition=1, **kwargs):
+class CLAMPSAM(torch.optim.Optimizer):
+    def __init__(self, params, rho=0.05, threshold=1, adaptive=False, **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, adaptive=adaptive, **kwargs)
-        super(CUSTOMSAME, self).__init__(params, defaults)
+        super(CLAMPSAM, self).__init__(params, defaults)
         self.state['step'] = 0
         self.log_step = 176
         self.total_para = 0
-        self.condition = condition
+        self.threshold = threshold
         for group in self.param_groups:
             for p in group['params']:
                 self.total_para += p.numel()
@@ -23,6 +23,7 @@ class CUSTOMSAME(torch.optim.Optimizer):
         
         if step % self.log_step == 0:
             self.weight_norm = self._weight_norm()
+            self.num_clamp = 0
             
         self.first_grad_norm = self._grad_norm()
         for group in self.param_groups:
@@ -32,10 +33,15 @@ class CUSTOMSAME(torch.optim.Optimizer):
                 param_state = self.state[p]
                 
                 e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * p.grad * scale
+                e_w.clamp_(self.threshold, None)
+                if step % self.log_step == 0:
+                    self.num_clamp += torch.sum(e_w == self.threshold)
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 
                 param_state['first_grad'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
+        if step % self.log_step == 0:
+            self.num_clamp = (self.num_clamp / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
@@ -47,7 +53,6 @@ class CUSTOMSAME(torch.optim.Optimizer):
             self.checkpoint2 = 0
             self.checkpoint3 = 0
             self.checkpoint4 = 0
-            
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -55,34 +60,31 @@ class CUSTOMSAME(torch.optim.Optimizer):
             for p in group['params']:
                 if p.grad is None: continue
                 param_state = self.state[p]
-
-                ratio = p.grad.div(param_state['first_grad'].add(1e-8))
-                # mask1, mask2, mask3, mask4 = ratio > 1, torch.logical_and( ratio > 0, ratio < 1), torch.logical_and( ratio < 0, ratio.abs() > 1), torch.logical_and( ratio < 0, ratio.abs() < 1)
-                mask = ratio > 0
                 
-                d_p = p.grad.mul( mask )
+                d_p = p.grad.data
                 
                 if step % self.log_step == 0:
+                    ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
                     self.checkpoint4 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() < 1) )
-
+                
                 p.sub_(param_state['e_w'])  # get back to "w" from "w + e(w)"
-
+                
                 if weight_decay != 0:
                     d_p.add_(p.data, alpha=weight_decay)
-
+                    
                 if 'exp_avg' not in param_state:
                     param_state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                 param_state['exp_avg'].mul_(momentum).add_(d_p)
-
+                
                 p.add_(param_state['exp_avg'], alpha=-step_size)
         if step % self.log_step == 0:
             self.checkpoint1 = (self.checkpoint1 / self.total_para) * 100
             self.checkpoint2 = (self.checkpoint2 / self.total_para) * 100
             self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
-            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100  
+            self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
@@ -117,7 +119,7 @@ class CUSTOMSAME(torch.optim.Optimizer):
                         p=2
                 )
             return norm
-
+        
     @torch.no_grad()
     def _weight_norm(self):
         shared_device = self.param_groups[0]["params"][0].device  # put everything on the same device, in case of model parallelism
@@ -130,7 +132,7 @@ class CUSTOMSAME(torch.optim.Optimizer):
                     p=2
                )
         return norm
-
+    
     def load_state_dict(self, state_dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups

@@ -44,8 +44,53 @@ $$
 
 ### CustomSAME
 
-- From our findings, We create a new optimizer, utilizing the advantage of each checkpoint
+- From our findings, we create a new optimizer, utilizing the advantage of each checkpoint
   - Increase grad checkpoint1
   - Maintain grad checkpoint2
   - Reduce grad checkpoint3
   - Increase grad checkpoint4
+
+- Early stage:
+  - Paras corresponding to learn useful pattern, have large gradients, those weights will be large, those variances will be small.
+  - Paras corresponding to learn noisy, have small gradients, those weights will be large, those variances will be large.
+- Later stage:
+  - Paras corresponding to learn useful pattern, have small gradients, those weights will be small, those variances will be small.
+  - Paras corresponding to learn noisy, have large gradients, those weights will be large, those variances will be large.
+
+
+### God sign
+
+1. The generalization effect of SAM diminished when more data?
+2. The gradient norm of perturbed gradient over current gradient at the later stage is more greater than the earlier stage. 
+3. Checkpoint3, checkpoint4 increase during later stage while checkpoint1 decrease. In contrast, ASAM do experience the increase of checkpoint1.
+
+## 2024/07/12
+
+- [x] Run SAMMAGNITUDE and SAMDIRECTION on different architectures:
+  - [x] Resnet18
+  - [x] Resnet34
+  - [x] Resnet50
+  - [x] Wrn28-10 
+  - Chu y luc report thi doi ten SAMMAGNITUDE <-> SAMDIRECTION
+
+1. Magnitude cua SAM quyet dinh toi accuracy. Insights:
+- Chi su dung cac dao ham cua SAM ma cung dau voi SGD => Test acc cao nhung test loss cao (Nguoc lai SAM thi dam bao duoc test acc cao va test loss thap).
+- Chi su dung cac dao ham cua SGD ma cung dau voi SAM => Test acc cao hon so voi SGD binh thuong nhung van ko cao bang thi nghiem tren.
+- Magnitude cua SAM nhung Direction cua SGD => Test acc cao
+- Direction cua SAM nhung Magnitude cua SGD => Ko cao
+2. Direction cua SAM quyet dinh toi test loss !!!
+
+Do tac dong tai sao SAM lai co direction nguoc huong voi SGD: 
+- Thi nghiem SAMANANATOMY, bo het ratio < 0, tai buoc di len thu 2, nhung ratio < 0, van duy tri tai buoc 3, tham chi con cao hon. 
+
+### Project1: Hypothesis
+- SAM ko train duoc voi rho cao vi co mot so grad outlier khien cho buoc di len qua xa tai mot so parameters => Ko on dinh.
+- Project1: Lam sao kiem tra duoc gia thuyet nay co that hay ko?
+- CLAMPSAM 
+
+### Project2: Ve Lien he giua Direction va Magnitude
+- perturbation radius cao => ratio < 0 tang
+- cap nhat parameters chi dua tren cac ratio > 0
+- Ideal: 
+  - Vi khi rho cao qua thi keo theo mot so direction thay doi nhieu => Giam tac dong cua 1 so parameters lai => Khien nhieu ratio > 0 hon
+  - Dieu nay se giup giao thoa giua Direction va Magnitude???
