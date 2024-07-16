@@ -29,6 +29,7 @@ from .customsame import CUSTOMSAME
 from .samevar import SAMEVAR
 from .clampsam import CLAMPSAM
 from .oversam import OVERSAM
+from .samcontrol import SAMCONTROL
 
 
 def get_optimizer(
@@ -187,6 +188,11 @@ def get_optimizer(
         )
     elif opt_name == 'oversam':
         return OVERSAM(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samcontrol':
+        return SAMCONTROL(
             net.parameters(),
             **opt_hyperparameter
         )
