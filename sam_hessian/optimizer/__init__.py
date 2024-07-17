@@ -14,6 +14,7 @@ from .samckpt4 import SAMCKPT4
 from .samckpt12 import SAMCKPT12
 from .samckpt13 import SAMCKPT13
 from .samckpt14 import SAMCKPT14
+from .samckpt34 import SAMCKPT34
 from .samckpt123 import SAMCKPT123
 from .samckpt134 import SAMCKPT134
 from .samckpt234 import SAMCKPT234
@@ -114,6 +115,11 @@ def get_optimizer(
         )
     elif opt_name == 'samckpt14':
         return SAMCKPT14(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samckpt34':
+        return SAMCKPT34(
             net.parameters(),
             **opt_hyperparameter
         )
