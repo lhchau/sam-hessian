@@ -58,9 +58,9 @@ class CUSTOMSAME(torch.optim.Optimizer):
 
                 ratio = p.grad.div(param_state['first_grad'].add(1e-8))
                 # mask1, mask2, mask3, mask4 = ratio > 1, torch.logical_and( ratio > 0, ratio < 1), torch.logical_and( ratio < 0, ratio.abs() > 1), torch.logical_and( ratio < 0, ratio.abs() < 1)
-                mask = ratio > 0
+                mask = torch.logical_and( ratio < 0, ratio.abs() > 1)
                 
-                d_p = p.grad.mul( mask )
+                d_p = p.grad.mul( torch.logical_not( mask ) )
                 
                 if step % self.log_step == 0:
                     self.checkpoint1 += torch.sum( ratio > 1 )
