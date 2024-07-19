@@ -32,7 +32,7 @@ def loop_one_epoch(
                 first_loss = criterion(outputs, targets)
                 first_loss.backward()
                 optimizer.first_step(zero_grad=True)
-            elif opt_name == 'SAMANATOMY' or opt_name == 'USAMANATOMY' or opt_name == 'SAMCONTROL':
+            elif opt_name == 'SAMANATOMY' or opt_name == 'USAMANATOMY' or opt_name == 'SAMCONTROL' or opt_name == 'MODIFIEDSAME':
                 enable_running_stats(net)  # <- this is the important line
                 outputs = net(inputs)
                 first_loss = criterion(outputs, targets)
