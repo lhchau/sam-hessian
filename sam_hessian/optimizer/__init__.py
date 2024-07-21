@@ -29,6 +29,7 @@ from .sameckpt134 import SAMECKPT134
 from .customsame import CUSTOMSAME
 from .samevar import SAMEVAR
 from .samckpt124 import SAMCKPT124
+from .forgetsam import FORGETSAM
 
 
 def get_optimizer(
@@ -187,6 +188,11 @@ def get_optimizer(
         )
     elif opt_name == 'samevar':
         return SAMEVAR(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'forgetsam':
+        return FORGETSAM(
             net.parameters(),
             **opt_hyperparameter
         )

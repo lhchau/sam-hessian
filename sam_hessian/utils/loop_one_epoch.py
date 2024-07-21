@@ -153,6 +153,14 @@ def loop_one_epoch(
             except: pass
             
             try: 
+                logging_dict[(f'{loop_type.title()}/forget_grad_norm', batch_idx)] = [optimizer.forget_grad_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/learn_grad_norm', batch_idx)] = [optimizer.learn_grad_norm, len(dataloader)]
+            except: pass
+            
+            try: 
                 logging_dict[(f'{loop_type.title()}/weight_norm', batch_idx)] = [optimizer.weight_norm, len(dataloader)]
             except: pass
             
