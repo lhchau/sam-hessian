@@ -30,6 +30,8 @@ from .customsame import CUSTOMSAME
 from .samevar import SAMEVAR
 from .samckpt124 import SAMCKPT124
 from .forgetsam import FORGETSAM
+from .geosam import GEOSAM
+from .clipsam import CLIPSAM
 
 
 def get_optimizer(
@@ -193,6 +195,16 @@ def get_optimizer(
         )
     elif opt_name == 'forgetsam':
         return FORGETSAM(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'geosam':
+        return GEOSAM(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'clipsam':
+        return CLIPSAM(
             net.parameters(),
             **opt_hyperparameter
         )
