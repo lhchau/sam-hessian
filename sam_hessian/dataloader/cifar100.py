@@ -37,7 +37,7 @@ def get_cifar100(
     data_test = torchvision.datasets.CIFAR100(root=os.path.join('.', 'data'), train=False, download=True, transform=transform_test)
     
     train_dataloader = torch.utils.data.DataLoader(
-        data_train, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+        data_train, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True, drop_last=True)
     val_dataloader = torch.utils.data.DataLoader(
         data_val, batch_size=1000, shuffle=False, num_workers=4, pin_memory=True)
     test_dataloader = torch.utils.data.DataLoader(

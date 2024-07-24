@@ -29,6 +29,7 @@ current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 parser = argparse.ArgumentParser(description='PyTorch Training')
 parser.add_argument('--experiment', default='example', type=str, help='path to YAML config file')
 parser.add_argument('--rho', default=None, type=float, help='SAM rho')
+parser.add_argument('--label_smoothing', default=0.0, type=float, help='Label smoothing')
 parser.add_argument('--k', default=None, type=int, help='SAMHESS k')
 parser.add_argument('--condition', default=None, type=float, help='SAM Atomy condition number')
 parser.add_argument('--threshold', default=None, type=float, help='SAME threshold number')
@@ -93,7 +94,7 @@ print(f'==> Number of parameters in {cfg["model"]["model_name"]}: {total_params}
 ################################
 #### 3.a OPTIMIZING MODEL PARAMETERS
 ################################
-criterion = nn.CrossEntropyLoss().to(device)
+criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing).to(device)
 sch = cfg['trainer'].get('sch', None)
 optimizer = get_optimizer(
     net, 
