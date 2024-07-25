@@ -16,6 +16,10 @@ class SAMECKPT4(torch.optim.Optimizer):
             for p in group['params']:
                 self.total_para += p.numel()
 
+        self.mean_grad_sq = 0
+        self.var_grad_sq = 0
+        self.beta = 0.9
+
     @torch.no_grad()
     def first_step(self, zero_grad=False):   
         self.state['step'] += 1
@@ -25,6 +29,8 @@ class SAMECKPT4(torch.optim.Optimizer):
             self.weight_norm = self._weight_norm()
             
         self.first_grad_norm = self._grad_norm()
+        self.mean_grad_sq = self.beta * self.var_grad_sq + (1 - self.beta) * self.first_grad_norm ** 2
+        self.var_grad_sq = self.beta * self.var_grad_sq + (1 - self.beta) * (self.first_grad_norm ** 2 - self.mean_grad_sq)
         for group in self.param_groups:
             scale = group['rho'] / (self.first_grad_norm + 1e-12)
             for p in group['params']:
@@ -37,6 +43,7 @@ class SAMECKPT4(torch.optim.Optimizer):
                 param_state['first_grad'] = p.grad.clone()
                 param_state['e_w'] = e_w.clone()
         if zero_grad: self.zero_grad()
+
 
     @torch.no_grad()
     def second_step(self, zero_grad=False):

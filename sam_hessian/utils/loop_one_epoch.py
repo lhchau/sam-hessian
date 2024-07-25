@@ -119,6 +119,14 @@ def loop_one_epoch(
             try: 
                 logging_dict[(f'{loop_type.title()}/checkpoint3264', batch_idx)] = [optimizer.checkpoint3264, len(dataloader)]
             except: pass
+
+            try: 
+                logging_dict[(f'{loop_type.title()}/mean_grad_sq', batch_idx)] = [optimizer.mean_grad_sq, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/var_grad_sq', batch_idx)] = [optimizer.var_grad_sq, len(dataloader)]
+            except: pass
             
             try: 
                 logging_dict[(f'{loop_type.title()}/ckpt1_norm', batch_idx)] = [optimizer.ckpt1_norm, len(dataloader)]
