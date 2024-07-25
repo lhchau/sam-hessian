@@ -29,7 +29,7 @@ class SAMECKPT4(torch.optim.Optimizer):
             self.weight_norm = self._weight_norm()
             
         self.first_grad_norm = self._grad_norm()
-        self.mean_grad_sq = self.beta * self.var_grad_sq + (1 - self.beta) * self.first_grad_norm ** 2
+        self.mean_grad_sq = self.beta * self.mean_grad_sq + (1 - self.beta) * self.first_grad_norm ** 2
         self.var_grad_sq = self.beta * self.var_grad_sq + (1 - self.beta) * (self.first_grad_norm ** 2 - self.mean_grad_sq)
         for group in self.param_groups:
             scale = group['rho'] / (self.first_grad_norm + 1e-12)
