@@ -32,6 +32,7 @@ from .forgetsam import FORGETSAM
 from .geosam import GEOSAM
 from .clipsam import CLIPSAM
 from .clipsamneg import CLIPSAMNEG
+from .samslownoisy import SAMSLOWNOISY
 
 
 def get_optimizer(
@@ -205,6 +206,11 @@ def get_optimizer(
         )
     elif opt_name == 'clipsamneg':
         return CLIPSAMNEG(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samslownoisy':
+        return SAMSLOWNOISY(
             net.parameters(),
             **opt_hyperparameter
         )

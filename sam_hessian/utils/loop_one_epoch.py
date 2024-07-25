@@ -123,6 +123,10 @@ def loop_one_epoch(
             try: 
                 logging_dict[(f'{loop_type.title()}/mean_grad_sq', batch_idx)] = [optimizer.mean_grad_sq, len(dataloader)]
             except: pass
+   
+            try: 
+                logging_dict[(f'{loop_type.title()}/noisy', batch_idx)] = [optimizer.noisy, len(dataloader)]
+            except: pass
             
             try: 
                 logging_dict[(f'{loop_type.title()}/var_grad_sq', batch_idx)] = [optimizer.var_grad_sq, len(dataloader)]
