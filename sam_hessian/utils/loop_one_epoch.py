@@ -149,6 +149,22 @@ def loop_one_epoch(
             except: pass
             
             try: 
+                logging_dict[(f'{loop_type.title()}/noisy_ckpt1', batch_idx)] = [optimizer.noisy_ckpt1, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/noisy_ckpt2', batch_idx)] = [optimizer.noisy_ckpt2, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/noisy_ckpt3', batch_idx)] = [optimizer.noisy_ckpt3, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/noisy_ckpt4', batch_idx)] = [optimizer.noisy_ckpt4, len(dataloader)]
+            except: pass
+            
+            try: 
                 logging_dict[(f'{loop_type.title()}/d_t_grad_norm', batch_idx)] = [optimizer.d_t_grad_norm, len(dataloader)]
             except: pass
                      

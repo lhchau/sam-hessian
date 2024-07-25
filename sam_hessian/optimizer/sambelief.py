@@ -52,6 +52,10 @@ class SAMBELIEF(torch.optim.Optimizer):
             self.checkpoint3 = 0
             self.checkpoint4 = 0
             self.noisy = 0
+            self.noisy_ckpt1 = 0
+            self.noisy_ckpt2 = 0
+            self.noisy_ckpt3 = 0
+            self.noisy_ckpt4 = 0
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             step_size = group['lr']
@@ -74,6 +78,10 @@ class SAMBELIEF(torch.optim.Optimizer):
                 
                 if step % self.log_step == 0:
                     ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    self.noisy_ckpt1 += torch.sum( torch.logical_and( mask, ratio > 1 ) )
+                    self.noisy_ckpt2 += torch.sum( torch.logical_and( mask, torch.logical_and( ratio < 1, ratio > 0) ) )
+                    self.noisy_ckpt3 += torch.sum( torch.logical_and( mask, torch.logical_and( ratio < 0, ratio.abs() > 1) ) )
+                    self.noisy_ckpt4 += torch.sum( torch.logical_and( mask, torch.logical_and( ratio < 0, ratio.abs() < 1) ) )
                     self.checkpoint1 += torch.sum( ratio > 1 )
                     self.checkpoint2 += torch.sum( torch.logical_and( ratio < 1, ratio > 0) )
                     self.checkpoint3 += torch.sum( torch.logical_and( ratio < 0, ratio.abs() > 1) )
@@ -96,6 +104,10 @@ class SAMBELIEF(torch.optim.Optimizer):
             self.checkpoint3 = (self.checkpoint3 / self.total_para) * 100
             self.checkpoint4 = (self.checkpoint4 / self.total_para) * 100
             self.noisy = (self.noisy / self.total_para) * 100
+            self.noisy_ckpt1 = (self.noisy_ckpt1 / self.total_para) * 100
+            self.noisy_ckpt2 = (self.noisy_ckpt2 / self.total_para) * 100
+            self.noisy_ckpt3 = (self.noisy_ckpt3 / self.total_para) * 100
+            self.noisy_ckpt4 = (self.noisy_ckpt4 / self.total_para) * 100
         if zero_grad: self.zero_grad()
 
     @torch.no_grad()
