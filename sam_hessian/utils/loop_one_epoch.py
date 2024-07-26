@@ -4,7 +4,6 @@ from .utils import *
 from .bypass_bn import *
 import torch.nn.functional as F
 
-
 def loop_one_epoch(
     dataloader,
     net,
@@ -146,6 +145,22 @@ def loop_one_epoch(
             
             try: 
                 logging_dict[(f'{loop_type.title()}/ckpt4_norm', batch_idx)] = [optimizer.ckpt4_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/prev_ckpt1_norm', batch_idx)] = [optimizer.prev_ckpt1_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/prev_ckpt2_norm', batch_idx)] = [optimizer.prev_ckpt2_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/prev_ckpt3_norm', batch_idx)] = [optimizer.prev_ckpt3_norm, len(dataloader)]
+            except: pass
+            
+            try: 
+                logging_dict[(f'{loop_type.title()}/prev_ckpt4_norm', batch_idx)] = [optimizer.prev_ckpt4_norm, len(dataloader)]
             except: pass
             
             try: 

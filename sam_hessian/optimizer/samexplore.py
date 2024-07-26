@@ -49,15 +49,25 @@ class SAMEXPLORE(torch.optim.Optimizer):
                     param_state = self.state[p]
                     
                     ratio = p.grad.div(param_state['first_grad'].add(1e-8))
+                    mask1, mask2, mask3, mask4 = ratio > 1, torch.logical_and( ratio > 0, ratio < 1), torch.logical_and( ratio < 0, ratio.abs() > 1), torch.logical_and( ratio < 0, ratio.abs() < 1)
 
-                    param_state['ckpt1'] = p.grad.mul( ratio > 1 )
-                    param_state['ckpt2'] = p.grad.mul( torch.logical_and( ratio < 1, ratio > 0) )
-                    param_state['ckpt3'] = p.grad.mul( torch.logical_and( ratio < 0, ratio.abs() > 1) )
-                    param_state['ckpt4'] = p.grad.mul( torch.logical_and( ratio < 0, ratio.abs() < 1) )
+                    param_state['ckpt1'] = p.grad.mul( mask1 )
+                    param_state['ckpt2'] = p.grad.mul( mask2 )
+                    param_state['ckpt3'] = p.grad.mul( mask3 )
+                    param_state['ckpt4'] = p.grad.mul( mask4 )
+                    
+                    param_state['prev_ckpt1'] = param_state['first_grad'].mul( mask1 )
+                    param_state['prev_ckpt2'] = param_state['first_grad'].mul( mask2 )
+                    param_state['prev_ckpt3'] = param_state['first_grad'].mul( mask3 )
+                    param_state['prev_ckpt4'] = param_state['first_grad'].mul( mask4 )
             self.ckpt1_norm = self._grad_norm('ckpt1')
             self.ckpt2_norm = self._grad_norm('ckpt2')
             self.ckpt3_norm = self._grad_norm('ckpt3')
             self.ckpt4_norm = self._grad_norm('ckpt4')
+            self.prev_ckpt1_norm = self._grad_norm('prev_ckpt1')
+            self.prev_ckpt2_norm = self._grad_norm('prev_ckpt2')
+            self.prev_ckpt3_norm = self._grad_norm('prev_ckpt3')
+            self.prev_ckpt4_norm = self._grad_norm('prev_ckpt4')
 
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
