@@ -34,6 +34,8 @@ from .clipsam import CLIPSAM
 from .clipsamneg import CLIPSAMNEG
 from .samslownoisy import SAMSLOWNOISY
 from .sambelief import SAMBELIEF
+from .samgc import SAMGC
+from .customsame234mul import CUSTOMSAME234MUL
 
 
 def get_optimizer(
@@ -217,6 +219,16 @@ def get_optimizer(
         )
     elif opt_name == 'sambelief':
         return SAMBELIEF(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'samgc':
+        return SAMGC(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'customsame234mul':
+        return CUSTOMSAME234MUL(
             net.parameters(),
             **opt_hyperparameter
         )
