@@ -94,3 +94,90 @@ Do tac dong tai sao SAM lai co direction nguoc huong voi SGD:
 - Ideal: 
   - Vi khi rho cao qua thi keo theo mot so direction thay doi nhieu => Giam tac dong cua 1 so parameters lai => Khien nhieu ratio > 0 hon
   - Dieu nay se giup giao thoa giua Direction va Magnitude???
+
+
+## 2024/08/04
+
+**Problem Setup**
+
+Model. We consider binary classification. The sign of the model’s output $f: R^n \to R$ maps inputs $x \in X$ to discrete labels $t \in \{-1, 1\}$. We will study two kinds of models – a linear model and a
+2-layer deep linear network (DLN) in this work. We do not include the bias term.
+
+- **Linear**: $f(w, x) = \langle w, x \rangle$
+- **DLN**: $f(v, W, x) = \langle v, Wx \rangle$
+
+**Lemma 3.1 (Preferential up-weighting of low loss points)** Consider the following function:
+ 
+$$
+f(z) = \frac{ \sigma(-z + C) }{ \sigma(-z) } = \frac{ 1 + exp(z) }{ 1 + exp(z-C)} = 1 + \frac{exp(z) - exp(z-C)}{1 + exp(z - C)}
+$$
+
+This function is stricly increasing if $C > 0$.
+
+We can interpret 1-SAM as a gradient reweighting scheme, where the weight for example $x_i$ is set to 
+
+$$
+\frac{ || \nabla l(w + \epsilon_i, x_i, t_i) ||}{ || \nabla l(w, x_i, t_i) || } = \frac{ \sigma( -t_i \langle w, x_i \rangle + \rho || x_i ||)}{ \sigma( -t_i \langle w, x_i \rangle )}
+$$
+
+Choose $z = t_i \langle w, x_i \rangle$ and $C = \rho || x_i ||_2$
+
+**Objective**: We consider the logistic loss $l(w, x, t) = -log(\sigma (t . f(w, x)))$ for sigmoid function $\sigma(z) = \frac{1}{1 + exp(-z)}$. Given $n$ training points $[(x_i, t_i)]^n_{i=1}$ sampled from the data distribution $D$, our training objectives is 
+
+$$
+\min_w L(w)
+$$
+
+where $L(w) = \frac{1}{n} \sum^n_{i=1} l(w, x_i, t_i)$
+
+By chain rule, we can write the sample-wise gradient with respect to the logistic $l(w, x, t)$ as 
+
+$$
+-\nabla_w l(x, t) = t . \sigma(-t f(w, x)) \nabla f(w, x)
+$$
+
+SAM perturbation:
+
+$$
+\begin{align*}
+-\nabla_w l(x, t) &= t . \sigma(-t f(w + \rho \frac{ - t . \sigma(-t f(w, x)) \nabla f(w, x) } { || t . \sigma(-t f(w, x)) \nabla f(w, x) || } , x)) \\ &\nabla f(w + \rho \frac{ - t . \sigma(-t f(w, x)) \nabla f(w, x) } { || t . \sigma(-t f(w, x)) \nabla f(w, x) || }, x) 
+\end{align*}
+$$
+
+**Explicit reweighting does not fully explain SAM's gains**
+
+We first note that the upweighting of low-loss points can be observed even in multi-class classification with neural networks. Recall the general form of the gradient for multi-class cross-entropy loss is 
+
+$$
+\nabla l(x, t) = \langle \sigma (f(w, x)) - e_t, \nabla f(w, x) \rangle 
+$$
+
+where $\sigma$ is the softmax function and $e_t$ is the one hot encoding of the label $t$.
+
+A similar analysis of SAM under label noise in linear models was conducted by Andriushchenko, however they attribute the label noise robustness in neural networks to logit scaling. We claim the opposite: that the *direction* or the network Jacobian of SAM's update becomes much more important.
+
+**Analysis**
+
+Motivated by this, we study the effect of perturbing the Jacobian in a simple 2-layer DLN. In the linear case, the Jacobian term was constant, but in the non-linear case the Jacobian is also sensitive to perturbation. In particular, for 2-layer DLNs, J-SAM regularizes the norm of intermediate activations and last layer weights, 
+
+**Proposition 4.1** For binary classification in a 2-layer deep linear network $f(v, W, x) = \langle v, Wx \rangle$, J-SAM approximately reduces to SGD with L2 norm penalty on the intermediate activations and last layer weights.
+
+**Proof**: We write the form of the J-SAM update for the first layer $W$ of the deep linear network:
+
+$$
+\begin{align*}
+  - \nabla_{W + \epsilon^1} l(w + \epsilon, x, t) &= \sigma (-t f(w,x))(tv - \frac{\rho}{J}z)x^T \\
+  &= - \nabla_W l(w, x, t) - \frac{ \rho \sigma (-t f(w, x)) }{J} z x^T
+\end{align*}
+$$
+
+where $z = Wx$ is the intermediate activation and $J = || \nabla f(x) || = \sqrt{ ||z||^2 + ||x||^2 ||v||^2}$ is a normalization factor. In the second layer, the gradient with respect to $v$ is
+
+$$
+\begin{align*}
+  - \nabla_{v + \epsilon^2} l(w + \epsilon, x, t) &= \sigma (-t f(w,x))(tz - \frac{\rho ||x||^2 }{J}v) \\
+  &= -\nabla_v l(w, x, t) - \frac{ \rho \sigma (-t f(w, x)) ||x||^2 }{J} v
+\end{align*}
+$$
+
+From these equations, note that SAM adds an activation norm regularization to the first layer $zx^T = \nabla_W \frac{1}{2} ||z||^2_2$ scaled by some scalar dependent on $\rho$, $f(w, x)$, and $J$. Similarly, note that SAM adds a weight norm penalty to the second layer weights $v = \nabla_v \frac{1}{2} ||v||^2$ also multiplied by some scalar. The normalization factor J scales the regularization be closer to the norm than the squared norm.
