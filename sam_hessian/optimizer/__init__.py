@@ -36,6 +36,7 @@ from .samslownoisy import SAMSLOWNOISY
 from .sambelief import SAMBELIEF
 from .samgc import SAMGC
 from .customsame234mul import CUSTOMSAME234MUL
+from .customsame2mul34mul import CUSTOMSAME2MUL34MUL
 
 
 def get_optimizer(
@@ -229,6 +230,11 @@ def get_optimizer(
         )
     elif opt_name == 'customsame234mul':
         return CUSTOMSAME234MUL(
+            net.parameters(),
+            **opt_hyperparameter
+        )
+    elif opt_name == 'customsame2mul34mul':
+        return CUSTOMSAME2MUL34MUL(
             net.parameters(),
             **opt_hyperparameter
         )

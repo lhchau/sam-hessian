@@ -19,6 +19,10 @@ def override_cfg(cfg, args):
         cfg['optimizer']['opt_hyperparameter']['k'] = args.k
     if args.condition is not None:
         cfg['optimizer']['opt_hyperparameter']['condition'] = args.condition
+    if args.condition1 is not None:
+        cfg['optimizer']['opt_hyperparameter']['condition1'] = args.condition1
+    if args.condition2 is not None:
+        cfg['optimizer']['opt_hyperparameter']['condition2'] = args.condition2
     if args.threshold is not None:
         cfg['optimizer']['opt_hyperparameter']['threshold'] = args.threshold
     if args.bs is not None:
